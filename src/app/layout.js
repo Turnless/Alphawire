@@ -4,7 +4,7 @@ import '../styles/dashboard.css';
 import '../styles/portfolio.css';
 
 export const metadata = {
-  title: 'AlphaWire | Autonomous Market News & Execution',
+  title: 'Cinder | Autonomous Market News & Execution',
   description: 'AI-generated market intelligence with autonomous narrative-driven trade execution.',
 };
 

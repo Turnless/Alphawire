@@ -19,47 +19,49 @@ export default function HomePage() {
           <circle cx="400" cy="300" r="100" fill="var(--color-shift-red)" filter="blur(90px)" />
         </svg>
 
-        <div className="hero-content">
-          <motion.span 
-            className="hero-eyebrow"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-          >
-            AlphaWire Financial Intelligence
-          </motion.span>
-          
-          <motion.h1 
-            className="hero-headline"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-          >
-            The AI Newsroom That Trades Its Own Stories
-          </motion.h1>
-          
-          <motion.p 
-            className="hero-subhead"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
-          >
-            Real-time ETF flow analytics and market sentiment classification, driving autonomous risk-managed trade execution on SoDEX.
-          </motion.p>
-          
-          <motion.div 
-            className="hero-ctas"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
-          >
-            <a href="/dashboard" className="btn-hero-primary">
-              Narrative Dashboard
-            </a>
-            <a href="/portfolio" className="btn-hero-secondary">
-              Configure Risk Limits
-            </a>
-          </motion.div>
+        <div className="container" style={{ width: '100%', position: 'relative', zIndex: 2 }}>
+          <div className="hero-content">
+            <motion.span 
+              className="hero-eyebrow"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              Cinder Financial Intelligence
+            </motion.span>
+            
+            <motion.h1 
+              className="hero-headline"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+            >
+              The AI Newsroom That Trades Its Own Stories
+            </motion.h1>
+            
+            <motion.p 
+              className="hero-subhead"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
+            >
+              Real-time ETF flow analytics and market sentiment classification, driving autonomous risk-managed trade execution on SoDEX.
+            </motion.p>
+            
+            <motion.div 
+              className="hero-ctas"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
+            >
+              <a href="/dashboard" className="btn-hero-primary">
+                Narrative Dashboard
+              </a>
+              <a href="/portfolio" className="btn-hero-secondary">
+                Configure Risk Limits
+              </a>
+            </motion.div>
+          </div>
         </div>
       </section>
 

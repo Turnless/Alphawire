@@ -12,8 +12,8 @@ export default function Header() {
       <nav className="nav-container">
         <div className="logo-section">
           <Link href="/" className="logo-link">
-            <span className="logo-alpha">Alpha</span>
-            <span className="logo-wire">⚡Wire</span>
+            <span className="logo-alpha">Cin</span>
+            <span className="logo-wire">⚡der</span>
           </Link>
           <LiveIndicator />
         </div>
@@ -22,7 +22,7 @@ export default function Header() {
           <ul className="nav-links">
             <li>
               <Link href="/" className={pathname === '/' ? 'active' : ''}>
-                Wire Feed
+                Feed
               </Link>
             </li>
             <li>
