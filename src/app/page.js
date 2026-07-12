@@ -241,9 +241,19 @@ export default function HomePage() {
           <div style={{ position: 'relative' }}>
             
             {/* Crisp readable section header outside the blurred container */}
-            <div style={{ maxWidth: '480px', margin: '0 auto 16px auto' }}>
-              <h3 className="section-heading" style={{ fontSize: '1rem', color: 'var(--color-linen)', borderLeft: '3px solid var(--color-wire-gold)', paddingLeft: '12px' }}>
-                Latest Story
+            <div style={{ maxWidth: '480px', margin: '0 auto 20px auto' }}>
+              <h3 style={{ 
+                fontFamily: 'var(--font-display)', 
+                fontSize: '1.4rem', 
+                fontWeight: 800, 
+                color: 'var(--color-linen)', 
+                borderLeft: '4px solid var(--color-wire-gold)', 
+                paddingLeft: '16px',
+                letterSpacing: '-0.01em',
+                textTransform: 'uppercase',
+                margin: 0
+              }}>
+                Latest Market Intelligence
               </h3>
             </div>
 
