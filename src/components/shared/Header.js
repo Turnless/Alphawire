@@ -13,7 +13,7 @@ export default function Header() {
         <div className="logo-section">
           <Link href="/" className="logo-link">
             <span className="logo-alpha">Cin</span>
-            <span className="logo-wire">⚡der</span>
+            <span className="logo-wire">der</span>
           </Link>
           <LiveIndicator />
         </div>
