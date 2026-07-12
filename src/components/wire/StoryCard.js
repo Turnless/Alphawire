@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import FlowChart from './FlowChart';
@@ -163,7 +163,19 @@ function getRelativeTimeString(dateString) {
 
 export default function StoryCard({ story, isDetail = false }) {
   const { id, type, title, body, summary, chart_data, narrative_state, published_at } = story;
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Disable body scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen]);
 
   // Format Date (No raw system fallbacks, using clean format)
   const dateFormatted = new Date(published_at).toLocaleString('en-US', {
@@ -242,10 +254,10 @@ export default function StoryCard({ story, isDetail = false }) {
   const handleToggle = (e) => {
     if (e.metaKey || e.ctrlKey || e.button === 1) return;
     e.preventDefault();
-    setIsExpanded(!isExpanded);
+    setIsModalOpen(!isModalOpen);
   };
 
-  const cardClasses = `story-card clay-glass ${type === 'breaking' ? 'story-breaking' : ''} ${isExpanded ? 'is-expanded' : ''}`;
+  const cardClasses = `story-card clay-glass ${type === 'breaking' ? 'story-breaking' : ''}`;
 
   if (isDetail) {
     return (
@@ -298,84 +310,121 @@ export default function StoryCard({ story, isDetail = false }) {
   }
 
   return (
-    <article className={cardClasses}>
-      <div className="story-card-top" onClick={handleToggle} style={{ cursor: 'pointer' }}>
-        <header className="story-card-header">
-          <div className="story-meta-left">
-            <span className={`story-type-badge ${type}`}>
-              <span className="story-badge-dot" />
-              {type === 'breaking' && 'Breaking'}
-              {type === 'deep_dive' && 'Deep Dive'}
-              {type === 'pulse' && 'Market Pulse'}
-            </span>
+    <>
+      <article className={cardClasses}>
+        <div className="story-card-top" onClick={handleToggle} style={{ cursor: 'pointer' }}>
+          <header className="story-card-header">
+            <div className="story-meta-left">
+              <span className={`story-type-badge ${type}`}>
+                <span className="story-badge-dot" />
+                {type === 'breaking' && 'Breaking'}
+                {type === 'deep_dive' && 'Deep Dive'}
+                {type === 'pulse' && 'Market Pulse'}
+              </span>
+            </div>
+            <time className="story-date" title={dateFormatted}>{relativeTime}</time>
+          </header>
+
+          <div className="story-card-content">
+            <Link href={`/story/${id}`} onClick={handleToggle}>
+              <h2 className="story-title">{title}</h2>
+            </Link>
+            {summary && <p className="story-summary-text">{summary}</p>}
           </div>
-          <time className="story-date" title={dateFormatted}>{relativeTime}</time>
-        </header>
-
-        <div className="story-card-content">
-          <Link href={`/story/${id}`} onClick={handleToggle}>
-            <h2 className="story-title">{title}</h2>
-          </Link>
-          {summary && <p className="story-summary-text">{summary}</p>}
         </div>
-      </div>
 
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            style={{ overflow: 'hidden' }}
-          >
-            {type === 'breaking' && chart_data?.execution && (
-              <div className="clay-glass breaking-execution-banner" style={{ margin: '12px 0 20px 0', borderLeft: '3px solid var(--color-shift-red)' }}>
-                <div className="execution-banner-title" style={{ fontSize: '0.8rem', color: 'var(--color-shift-red)', fontWeight: 700, marginBottom: '6px' }}>EXECUTION DETAILS</div>
-                <div className="execution-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', fontSize: '0.8rem' }}>
-                  <div>
-                    <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Asset Pair:</span>{' '}
-                    <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.pair}</span>
-                  </div>
-                  <div>
-                    <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Side:</span>{' '}
-                    <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.side}</span>
-                  </div>
-                  <div>
-                    <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Qty:</span>{' '}
-                    <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.qty}</span>
-                  </div>
-                  <div>
-                    <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Price:</span>{' '}
-                    <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>${parseFloat(chart_data.execution.price || 0).toFixed(2)}</span>
-                  </div>
+        <div className="story-card-footer">
+          {renderNarrativeTags()}
+          <a href={`/story/${id}`} onClick={handleToggle} className="story-read-link">
+            <span>Read Report</span>
+            <svg className="story-read-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </a>
+        </div>
+      </article>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="story-modal-wrapper-fixed">
+            <motion.div 
+              className="story-modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+            />
+
+            <motion.div 
+              className="story-modal-content clay-glass"
+              initial={{ scale: 0.92, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 16 }}
+              transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+            >
+              <div className="story-modal-header">
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="story-modal-back-btn"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 8H2M2 8L7 13M2 8L7 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span>Back to Feed</span>
+                </button>
+
+                <div className="story-meta-right">
+                  <span className={`story-type-badge ${type}`}>
+                    <span className="story-badge-dot" />
+                    {type === 'breaking' && 'Breaking'}
+                    {type === 'deep_dive' && 'Deep Dive'}
+                    {type === 'pulse' && 'Market Pulse'}
+                  </span>
+                  <time className="story-date" title={dateFormatted}>{relativeTime}</time>
                 </div>
               </div>
-            )}
-            <div className="story-expanded-body" style={{ borderTop: '1px solid rgba(236, 223, 204, 0.08)', paddingTop: '16px', marginBottom: '20px' }}>
-              {renderBodyContent()}
-            </div>
-          </motion.div>
+
+              <div className="story-modal-scroll-area">
+                <h1 className="story-modal-title">{title}</h1>
+                {summary && <p className="story-modal-subhead">{summary}</p>}
+
+                {type === 'breaking' && chart_data?.execution && (
+                  <div className="clay-glass breaking-execution-banner" style={{ margin: '20px 0', borderLeft: '3px solid var(--color-shift-red)' }}>
+                    <div className="execution-banner-title" style={{ fontSize: '0.82rem', color: 'var(--color-shift-red)', fontWeight: 700, marginBottom: '8px' }}>EXECUTION DETAILS</div>
+                    <div className="execution-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', fontSize: '0.82rem' }}>
+                      <div>
+                        <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Asset Pair:</span>{' '}
+                        <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.pair}</span>
+                      </div>
+                      <div>
+                        <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Side:</span>{' '}
+                        <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.side}</span>
+                      </div>
+                      <div>
+                        <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Qty:</span>{' '}
+                        <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.qty}</span>
+                      </div>
+                      <div>
+                        <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Price:</span>{' '}
+                        <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>${parseFloat(chart_data.execution.price || 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="story-modal-body-content" style={{ borderTop: '1px solid rgba(236, 223, 204, 0.08)', paddingTop: '20px' }}>
+                  {renderBodyContent()}
+                </div>
+
+                <div className="story-modal-footer-tags" style={{ marginTop: '28px', paddingTop: '20px', borderTop: '1px solid rgba(236, 223, 204, 0.08)' }}>
+                  <div className="story-modal-footer-label" style={{ fontFamily: 'var(--font-body)', fontSize: '0.8rem', color: 'var(--color-sage)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Impacted Narratives:</div>
+                  {renderNarrativeTags()}
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
-
-      <div className="story-card-footer">
-        {renderNarrativeTags()}
-        <a href={`/story/${id}`} onClick={handleToggle} className="story-read-link">
-          <span>{isExpanded ? 'Close Report' : 'Read Report'}</span>
-          <svg 
-            className="story-read-arrow" 
-            width="16" 
-            height="16" 
-            viewBox="0 0 16 16" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ transform: isExpanded ? 'rotate(-90deg)' : 'none' }}
-          >
-            <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </a>
-      </div>
-    </article>
+    </>
   );
 }
