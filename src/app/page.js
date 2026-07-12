@@ -140,8 +140,7 @@ export default function HomePage() {
         style={{ 
           position: 'relative', 
           zIndex: 10, 
-          paddingBottom: '60px',
-          minHeight: isConnected ? 'auto' : '680px'
+          paddingBottom: '60px'
         }}
       >
         
@@ -238,7 +237,7 @@ export default function HomePage() {
           </div>
         ) : (
           /* Disconnected Gated View */
-          <div style={{ position: 'relative' }}>
+          <div>
             
             {/* Crisp readable section header outside the blurred container */}
             <div style={{ maxWidth: '480px', margin: '0 auto 20px auto' }}>
@@ -257,10 +256,10 @@ export default function HomePage() {
               </h3>
             </div>
 
-            {/* Clickable Gated Area Wrapper */}
+            {/* Clickable Gated Area Wrapper (Centers absolutely positioned children relative to it) */}
             <div 
               onClick={() => setIsConnectModalOpen(true)}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', maxWidth: '480px', margin: '0 auto', position: 'relative' }}
             >
               {/* Blurred Preview content container */}
               <div 
@@ -273,145 +272,104 @@ export default function HomePage() {
                 }}
               >
                 {/* Single compact latest story card instead of full huge feed */}
-                <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-                  <div style={{ 
-                    padding: '16px 20px', 
-                    borderRadius: '14px', 
-                    border: '1px solid var(--glass-border)',
-                    background: 'var(--glass-surface)',
-                    textAlign: 'left',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px'
+                <div style={{ 
+                  padding: '16px 20px', 
+                  borderRadius: '14px', 
+                  border: '1px solid var(--glass-border)',
+                  background: 'var(--glass-surface)',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ 
+                      fontSize: '0.65rem', 
+                      fontFamily: 'var(--font-mono)', 
+                      fontWeight: 700, 
+                      textTransform: 'uppercase', 
+                      color: latestStory?.type === 'breaking' ? 'var(--color-shift-red)' : 'var(--color-wire-gold)',
+                      background: 'rgba(236, 223, 204, 0.05)',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(236, 223, 204, 0.1)'
+                    }}>
+                      {latestStory?.type || 'Update'}
+                    </span>
+                    <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)' }}>
+                      5m ago
+                    </span>
+                  </div>
+
+                  <h4 style={{ 
+                    fontFamily: 'var(--font-display)', 
+                    fontSize: '0.95rem', 
+                    color: 'var(--color-linen)', 
+                    lineHeight: '1.4',
+                    margin: 0
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ 
-                        fontSize: '0.65rem', 
-                        fontFamily: 'var(--font-mono)', 
-                        fontWeight: 700, 
-                        textTransform: 'uppercase', 
-                        color: latestStory?.type === 'breaking' ? 'var(--color-shift-red)' : 'var(--color-wire-gold)',
-                        background: 'rgba(236, 223, 204, 0.05)',
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid rgba(236, 223, 204, 0.1)'
-                      }}>
-                        {latestStory?.type || 'Update'}
-                      </span>
-                      <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)' }}>
-                        5m ago
-                      </span>
-                    </div>
+                    {latestStory?.title || 'Loading latest market shift intelligence...'}
+                  </h4>
 
-                    <h4 style={{ 
-                      fontFamily: 'var(--font-display)', 
-                      fontSize: '0.95rem', 
-                      color: 'var(--color-linen)', 
-                      lineHeight: '1.4',
-                      margin: 0
-                    }}>
-                      {latestStory?.title || 'Loading latest market shift intelligence...'}
-                    </h4>
-
-                    <p style={{ 
-                      fontSize: '0.78rem', 
-                      color: 'var(--color-sage)', 
-                      lineHeight: '1.5',
-                      margin: 0,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}>
-                      {latestStory?.summary || 'Autonomous agent monitoring ETF trends and on-chain order flows.'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Blurred Ticker */}
-                <div style={{ marginTop: '40px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '24px' }}>
-                  <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Live Order Executions</h3>
-                  <div style={{ width: '100%', overflow: 'hidden', background: 'rgba(60,61,55,0.2)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px 0' }}>
-                    <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
-                      <span>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
-                      <span>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Blurred Stats */}
-                <div style={{ marginTop: '40px' }}>
-                  <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>System Performance</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '16px' }}>
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                        <div style={{ height: '10px', width: '64px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
-                        <div style={{ height: '24px', width: '48px', backgroundColor: 'var(--color-iron)' }} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Blurred Loop Architecture */}
-                <div style={{ marginTop: '40px' }}>
-                  <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Autonomous Loop Architecture</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                        <div style={{ height: '12px', width: '60px', backgroundColor: 'var(--color-iron)', marginBottom: '12px' }} />
-                        <div style={{ height: '16px', width: '100px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
-                        <div style={{ height: '8px', width: '100%', backgroundColor: 'var(--color-iron)', marginBottom: '6px' }} />
-                        <div style={{ height: '8px', width: '80%', backgroundColor: 'var(--color-iron)' }} />
-                      </div>
-                    ))}
-                  </div>
+                  <p style={{ 
+                    fontSize: '0.78rem', 
+                    color: 'var(--color-sage)', 
+                    lineHeight: '1.5',
+                    margin: 0,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {latestStory?.summary || 'Autonomous agent monitoring ETF trends and on-chain order flows.'}
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Central Call to Action Overlay */}
-            <div 
-              className="clay-glass"
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                zIndex: 20,
-                width: '90%',
-                maxWidth: '460px',
-                padding: '36px 24px',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '16px',
-                border: '1px solid rgba(212, 168, 83, 0.3)',
-                boxShadow: '0 16px 48px rgba(0,0,0,0.85), inset 0 1px 0 rgba(212, 168, 83, 0.15)'
-              }}
-            >
-              <h2 style={{ fontSize: '1.35rem', color: 'var(--color-wire-gold)', fontWeight: 700, fontFamily: 'var(--font-display)', margin: 0 }}>
-                Unlock Market Intelligence
-              </h2>
-              <p style={{ fontSize: '0.82rem', color: 'var(--color-sage)', lineHeight: '1.6', fontFamily: 'var(--font-body)', margin: 0 }}>
-                Connect your Web3 wallet and claim demo CINDER tokens to unlock real-time ETF flows, narrative analysis, and automated trade execution logs on SoDEX.
-              </p>
-              <button 
-                onClick={() => setIsConnectModalOpen(true)}
-                className="btn-hero-primary"
-                style={{ 
-                  padding: '12px 32px', 
-                  fontSize: '0.85rem', 
-                  fontWeight: 700, 
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                  border: 'none',
-                  marginTop: '6px'
+              {/* Central Call to Action Overlay (Centered perfectly over the 480px card container) */}
+              <div 
+                className="clay-glass"
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 20,
+                  width: '90%',
+                  maxWidth: '400px',
+                  padding: '32px 20px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '14px',
+                  border: '1px solid rgba(212, 168, 83, 0.3)',
+                  boxShadow: '0 16px 48px rgba(0,0,0,0.85), inset 0 1px 0 rgba(212, 168, 83, 0.15)'
                 }}
               >
-                Connect Wallet to Unlock
-              </button>
+                <h2 style={{ fontSize: '1.25rem', color: 'var(--color-wire-gold)', fontWeight: 700, fontFamily: 'var(--font-display)', margin: 0 }}>
+                  Unlock Market Intelligence
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-sage)', lineHeight: '1.55', fontFamily: 'var(--font-body)', margin: 0 }}>
+                  Connect your Web3 wallet and claim demo CINDER tokens to unlock real-time ETF flows, narrative analysis, and automated trade execution logs on SoDEX.
+                </p>
+                <button 
+                  onClick={() => setIsConnectModalOpen(true)}
+                  className="btn-hero-primary"
+                  style={{ 
+                    padding: '10px 24px', 
+                    fontSize: '0.8rem', 
+                    fontWeight: 700, 
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    border: 'none',
+                    marginTop: '4px'
+                  }}
+                >
+                  Connect Wallet to Unlock
+                </button>
+              </div>
             </div>
           </div>
         )}
