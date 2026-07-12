@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StoryCard from './StoryCard';
+import { useWallet } from '../../context/WalletContext';
 
 const spring = { type: 'spring', stiffness: 280, damping: 24 };
 
@@ -28,6 +29,8 @@ export default function StoryFeed() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState(null);
+  
+  const { isConnected, connectWallet } = useWallet();
 
   // Fetch stories on load and page change
   const fetchStories = async (pageNum, append = false) => {
@@ -173,6 +176,17 @@ export default function StoryFeed() {
     );
   }
 
+  const sortedStories = stories
+    .slice()
+    .sort((a, b) => {
+      if (a.type === 'breaking' && b.type !== 'breaking') return -1;
+      if (a.type !== 'breaking' && b.type === 'breaking') return 1;
+      return new Date(b.published_at) - new Date(a.published_at);
+    });
+
+  // Limit display stories to 3 if disconnected (1 visible, 2 blurred)
+  const visibleStories = isConnected ? sortedStories : sortedStories.slice(0, 3);
+
   return (
     <div className="story-feed-wrapper">
       <div className="feed-header-row">
@@ -188,26 +202,65 @@ export default function StoryFeed() {
           animate="show"
           layout
         >
-          {stories
-            .slice()
-            .sort((a, b) => {
-              if (a.type === 'breaking' && b.type !== 'breaking') return -1;
-              if (a.type !== 'breaking' && b.type === 'breaking') return 1;
-              return new Date(b.published_at) - new Date(a.published_at);
-            })
-            .map((story) => (
-            <motion.div
-              key={story.id}
-              variants={itemVariants}
-              layout
-            >
-              <StoryCard story={story} />
-            </motion.div>
-          ))}
+          {visibleStories.map((story, index) => {
+            const isBlurred = !isConnected && index > 0;
+            return (
+              <motion.div
+                key={story.id}
+                variants={itemVariants}
+                layout
+                style={isBlurred ? { filter: 'blur(8px)', pointerEvents: 'none', opacity: 0.35, userSelect: 'none' } : {}}
+              >
+                <StoryCard story={story} />
+              </motion.div>
+            );
+          })}
         </motion.div>
       </AnimatePresence>
 
-      {hasMore && (
+      {/* Disconnected Feed Gate Overlay */}
+      {!isConnected && stories.length > 1 && (
+        <div 
+          className="clay-glass"
+          style={{
+            marginTop: '24px',
+            padding: '40px 24px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px',
+            border: '1px solid rgba(212, 168, 83, 0.3)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(212, 168, 83, 0.15)',
+            borderRadius: '20px'
+          }}
+        >
+          <div style={{ fontSize: '1.6rem', color: 'var(--color-wire-gold)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+            Unlock Live Intelligence Feed
+          </div>
+          <p style={{ maxWidth: '500px', fontSize: '0.88rem', color: 'var(--color-sage)', lineHeight: '1.6', fontFamily: 'var(--font-body)' }}>
+            Connect your Web3 wallet and claim demo CINDER tokens to unlock real-time ETF flows, narrative analysis, and automated trade execution logs on SoDEX.
+          </p>
+          <button 
+            onClick={() => connectWallet()}
+            className="btn-hero-primary"
+            style={{ 
+              padding: '12px 32px', 
+              fontSize: '0.85rem', 
+              fontWeight: 700, 
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              marginTop: '8px'
+            }}
+          >
+            Connect Wallet to Unlock
+          </button>
+        </div>
+      )}
+
+      {isConnected && hasMore && (
         <div className="load-more-container">
           <button 
             className="btn-hero-secondary" 
