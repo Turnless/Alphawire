@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import StoryCard from './StoryCard';
 
 export default function StoryFeed() {
@@ -21,7 +22,10 @@ export default function StoryFeed() {
       }
       setError(null);
 
-      const res = await fetch(`/api/stories?page=${pageNum}&limit=10`);
+      const limit = 10;
+      const offset = (pageNum - 1) * limit;
+
+      const res = await fetch(`/api/stories?offset=${offset}&limit=${limit}`);
       const data = await res.json();
 
       if (data.success) {
@@ -35,7 +39,12 @@ export default function StoryFeed() {
             return data.stories;
           }
         });
-        setHasMore(data.pagination?.hasMore || false);
+        
+        const total = data.pagination?.total || 0;
+        const currentStoriesLength = append 
+          ? (stories.length + (data.stories?.length || 0)) 
+          : (data.stories?.length || 0);
+        setHasMore(offset + (data.stories?.length || 0) < total);
       } else {
         setError(data.error || 'Failed to retrieve stories');
       }
@@ -164,11 +173,22 @@ export default function StoryFeed() {
         <span className="feed-count">{stories.length} report{stories.length !== 1 ? 's' : ''} loaded</span>
       </div>
 
-      <div className="story-feed">
-        {stories.map((story) => (
-          <StoryCard key={story.id} story={story} />
-        ))}
-      </div>
+      <motion.div className="story-feed" layout>
+        <AnimatePresence mode="popLayout">
+          {stories.map((story) => (
+            <motion.div
+              key={story.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              layout
+            >
+              <StoryCard story={story} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </motion.div>
 
       {hasMore && (
         <div className="load-more-container">

@@ -1,5 +1,7 @@
 import '../styles/globals.css';
 import '../styles/wire.css';
+import '../styles/dashboard.css';
+import '../styles/portfolio.css';
 import { ThemeProvider } from '../components/shared/ThemeProvider';
 
 export const metadata = {

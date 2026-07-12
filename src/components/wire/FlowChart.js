@@ -23,24 +23,50 @@ export default function FlowChart({ data }) {
     );
   }
 
-  // Format date to local or clean short format (e.g. Jul 06)
-  const formattedData = data.map(item => {
-    try {
-      const dateObj = new Date(item.date);
-      const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  // Format date and sanitize net flows safely
+  const formattedData = (data || [])
+    .filter(item => item && (item.date || item.published_at))
+    .map(item => {
+      const rawDate = item.date || item.published_at;
+      let displayDate = 'N/A';
+      try {
+        const dateObj = new Date(rawDate);
+        if (!isNaN(dateObj.getTime())) {
+          displayDate = dateObj.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            timeZone: 'UTC' 
+          });
+        } else {
+          displayDate = String(rawDate);
+        }
+      } catch (e) {
+        displayDate = String(rawDate);
+      }
+
+      let flow = 0;
+      if (item.net_flow !== undefined && item.net_flow !== null) {
+        const parsed = parseFloat(item.net_flow);
+        if (!isNaN(parsed)) {
+          flow = parsed;
+        }
+      }
+
       return {
         ...item,
-        displayDate: formattedDate,
-        flow: parseFloat(item.net_flow || 0)
+        displayDate,
+        flow
       };
-    } catch (e) {
-      return {
-        ...item,
-        displayDate: item.date,
-        flow: parseFloat(item.net_flow || 0)
-      };
-    }
-  });
+    });
+
+  if (formattedData.length === 0) {
+    return (
+      <div className="chart-empty-state">
+        <span className="empty-icon">📊</span>
+        <p>No valid ETF net flow data available.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flow-chart-wrapper">

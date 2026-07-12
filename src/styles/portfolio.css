@@ -1,13 +1,48 @@
-/* Portfolio page styling stubs */
+/* Portfolio Premium Layout & Transition Styles */
+
 .portfolio-grid {
   display: grid;
-  grid-template-columns: 8fr 4fr;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .portfolio-grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.portfolio-col-8 {
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
 }
-.portfolio-view, .trade-history, .quick-trade, .risk-dashboard {
+
+.portfolio-col-4 {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: sticky;
+  top: 90px;
+}
+
+.portfolio-view, 
+.trade-history, 
+.quick-trade, 
+.risk-dashboard {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  padding: 1.5rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  padding: 1.75rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.portfolio-view:hover, 
+.trade-history:hover, 
+.quick-trade:hover, 
+.risk-dashboard:hover {
+  border-color: var(--text-secondary);
+  box-shadow: 0 6px 18px var(--shadow-color);
 }

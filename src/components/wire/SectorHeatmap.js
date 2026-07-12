@@ -1,7 +1,27 @@
 'use client';
 
 export default function SectorHeatmap({ sectors }) {
-  if (!sectors || sectors.length === 0) {
+  const validSectors = (sectors || [])
+    .filter(s => s && s.sector)
+    .map(s => {
+      const perf7 = parseFloat(s.performance_7d);
+      const performance_7d = isNaN(perf7) ? 0 : perf7;
+
+      const perf30 = parseFloat(s.performance_30d);
+      const performance_30d = isNaN(perf30) ? 0 : perf30;
+
+      const corr = parseFloat(s.correlation_btc);
+      const correlation_btc = isNaN(corr) ? null : corr;
+
+      return {
+        ...s,
+        performance_7d,
+        performance_30d,
+        correlation_btc
+      };
+    });
+
+  if (validSectors.length === 0) {
     return (
       <div className="heatmap-empty-state">
         <span className="empty-icon">🗺️</span>
@@ -12,7 +32,7 @@ export default function SectorHeatmap({ sectors }) {
 
   return (
     <div className="sector-heatmap-grid">
-      {sectors.map((sectorData, index) => {
+      {validSectors.map((sectorData, index) => {
         const perf = sectorData.performance_7d || 0;
         const isPositive = perf >= 0;
         
