@@ -241,8 +241,8 @@ export default function HomePage() {
           <div style={{ position: 'relative' }}>
             
             {/* Crisp readable section header outside the blurred container */}
-            <div style={{ maxWidth: '680px', margin: '0 auto 20px auto' }}>
-              <h3 className="section-heading" style={{ fontSize: '1.15rem', color: 'var(--color-linen)', borderLeft: '3px solid var(--color-wire-gold)', paddingLeft: '16px' }}>
+            <div style={{ maxWidth: '480px', margin: '0 auto 16px auto' }}>
+              <h3 className="section-heading" style={{ fontSize: '1rem', color: 'var(--color-linen)', borderLeft: '3px solid var(--color-wire-gold)', paddingLeft: '12px' }}>
                 Latest Story
               </h3>
             </div>
@@ -263,20 +263,58 @@ export default function HomePage() {
                 }}
               >
                 {/* Single compact latest story card instead of full huge feed */}
-                <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-                  <div style={{ maxHeight: '200px', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)', background: 'var(--glass-surface)' }}>
-                    {latestStory ? (
-                      <StoryCard story={latestStory} />
-                    ) : (
-                      <div className="story-card-skeleton">
-                        <div className="skeleton-header">
-                          <div className="skeleton-badge shimmer"></div>
-                          <div className="skeleton-date shimmer"></div>
-                        </div>
-                        <div className="skeleton-title shimmer"></div>
-                        <div className="skeleton-summary shimmer"></div>
-                      </div>
-                    )}
+                <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+                  <div style={{ 
+                    padding: '16px 20px', 
+                    borderRadius: '14px', 
+                    border: '1px solid var(--glass-border)',
+                    background: 'var(--glass-surface)',
+                    textAlign: 'left',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ 
+                        fontSize: '0.65rem', 
+                        fontFamily: 'var(--font-mono)', 
+                        fontWeight: 700, 
+                        textTransform: 'uppercase', 
+                        color: latestStory?.type === 'breaking' ? 'var(--color-shift-red)' : 'var(--color-wire-gold)',
+                        background: 'rgba(236, 223, 204, 0.05)',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(236, 223, 204, 0.1)'
+                      }}>
+                        {latestStory?.type || 'Update'}
+                      </span>
+                      <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)' }}>
+                        5m ago
+                      </span>
+                    </div>
+
+                    <h4 style={{ 
+                      fontFamily: 'var(--font-display)', 
+                      fontSize: '0.95rem', 
+                      color: 'var(--color-linen)', 
+                      lineHeight: '1.4',
+                      margin: 0
+                    }}>
+                      {latestStory?.title || 'Loading latest market shift intelligence...'}
+                    </h4>
+
+                    <p style={{ 
+                      fontSize: '0.78rem', 
+                      color: 'var(--color-sage)', 
+                      lineHeight: '1.5',
+                      margin: 0,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
+                      {latestStory?.summary || 'Autonomous agent monitoring ETF trends and on-chain order flows.'}
+                    </p>
                   </div>
                 </div>
 
@@ -294,11 +332,11 @@ export default function HomePage() {
                 {/* Blurred Stats */}
                 <div style={{ marginTop: '40px' }}>
                   <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>System Performance</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '16px' }}>
                     {[1, 2, 3, 4].map((i) => (
                       <div key={i} className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                        <div style={{ height: '10px', width: '80px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
-                        <div style={{ height: '24px', width: '60px', backgroundColor: 'var(--color-iron)' }} />
+                        <div style={{ height: '10px', width: '64px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
+                        <div style={{ height: '24px', width: '48px', backgroundColor: 'var(--color-iron)' }} />
                       </div>
                     ))}
                   </div>
@@ -307,11 +345,11 @@ export default function HomePage() {
                 {/* Blurred Loop Architecture */}
                 <div style={{ marginTop: '40px' }}>
                   <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Autonomous Loop Architecture</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
                         <div style={{ height: '12px', width: '60px', backgroundColor: 'var(--color-iron)', marginBottom: '12px' }} />
-                        <div style={{ height: '16px', width: '120px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
+                        <div style={{ height: '16px', width: '100px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
                         <div style={{ height: '8px', width: '100%', backgroundColor: 'var(--color-iron)', marginBottom: '6px' }} />
                         <div style={{ height: '8px', width: '80%', backgroundColor: 'var(--color-iron)' }} />
                       </div>
@@ -326,26 +364,26 @@ export default function HomePage() {
               className="clay-glass"
               style={{
                 position: 'absolute',
-                top: '55%',
-                left: '55%',
+                top: '50%',
+                left: '50%',
                 transform: 'translate(-50%, -50%)',
                 zIndex: 20,
                 width: '90%',
-                maxWidth: '520px',
-                padding: '44px 32px',
+                maxWidth: '460px',
+                padding: '36px 24px',
                 textAlign: 'center',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '18px',
+                gap: '16px',
                 border: '1px solid rgba(212, 168, 83, 0.3)',
                 boxShadow: '0 16px 48px rgba(0,0,0,0.85), inset 0 1px 0 rgba(212, 168, 83, 0.15)'
               }}
             >
-              <h2 style={{ fontSize: '1.5rem', color: 'var(--color-wire-gold)', fontWeight: 700, fontFamily: 'var(--font-display)', margin: 0 }}>
+              <h2 style={{ fontSize: '1.35rem', color: 'var(--color-wire-gold)', fontWeight: 700, fontFamily: 'var(--font-display)', margin: 0 }}>
                 Unlock Market Intelligence
               </h2>
-              <p style={{ fontSize: '0.88rem', color: 'var(--color-sage)', lineHeight: '1.65', fontFamily: 'var(--font-body)', margin: 0 }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--color-sage)', lineHeight: '1.6', fontFamily: 'var(--font-body)', margin: 0 }}>
                 Connect your Web3 wallet and claim demo CINDER tokens to unlock real-time ETF flows, narrative analysis, and automated trade execution logs on SoDEX.
               </p>
               <button 
