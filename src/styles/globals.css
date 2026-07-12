@@ -1183,3 +1183,12 @@ input, textarea, select {
   background: rgba(236, 223, 204, 0.05);
 }
 
+@keyframes ticker-slide {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.ticker-scroll {
+  animation: ticker-slide 30s linear infinite;
+}
+
