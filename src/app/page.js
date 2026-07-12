@@ -1,8 +1,10 @@
 'use client';
 
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import Header from '../components/shared/Header';
 import StoryFeed from '../components/wire/StoryFeed';
+import StoryCard from '../components/wire/StoryCard';
 import TemperatureGauge from '../components/narrative/TemperatureGauge';
 import { useWallet } from '../context/WalletContext';
 
@@ -10,10 +12,37 @@ export default function HomePage() {
   const { scrollY } = useScroll();
   const { isConnected, connectWallet, isConnecting } = useWallet();
   
+  const [latestStory, setLatestStory] = useState(null);
+  const [loadingStory, setLoadingStory] = useState(true);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+
   // Transform hero opacity, scale, and y translation based on scroll position
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
   const heroScale = useTransform(scrollY, [0, 400], [1, 0.92]);
   const heroY = useTransform(scrollY, [0, 400], [0, -60]);
+
+  // Fetch only the single latest story for the compact disconnected preview
+  useEffect(() => {
+    async function fetchLatest() {
+      try {
+        const res = await fetch('/api/stories?limit=1');
+        const data = await res.json();
+        if (data.success && data.stories.length > 0) {
+          setLatestStory(data.stories[0]);
+        }
+      } catch (e) {
+        console.error('Error fetching latest story:', e);
+      } finally {
+        setLoadingStory(false);
+      }
+    }
+    fetchLatest();
+  }, []);
+
+  const handleConnectProvider = (provider) => {
+    connectWallet(provider);
+    setIsConnectModalOpen(false);
+  };
 
   return (
     <main style={{ backgroundColor: 'var(--color-obsidian)', minHeight: '100vh', overflowX: 'hidden' }}>
@@ -84,7 +113,7 @@ export default function HomePage() {
                 </>
               ) : (
                 <button 
-                  onClick={() => connectWallet()}
+                  onClick={() => setIsConnectModalOpen(true)}
                   disabled={isConnecting}
                   className="btn-hero-primary"
                   style={{ 
@@ -106,117 +135,297 @@ export default function HomePage() {
 
       {/* Feed scrolls up and overlays the hero */}
       <div className="feed-overlay container" style={{ position: 'relative', zIndex: 10, paddingBottom: '60px' }}>
-        <div style={!isConnected ? { filter: 'blur(12px)', pointerEvents: 'none', opacity: 0.25, transition: 'all 0.5s ease' } : { transition: 'all 0.5s ease' }}>
-          {/* Main Feed Section */}
-          <div className="feed-layout">
-            <div className="feed-column">
-              <StoryFeed />
-            </div>
-            <div className="sidebar-column">
-              <div className="clay-glass" style={{ padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)' }}>
-                <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: 'var(--space-md)' }}>Current Market Mood</h3>
-                <TemperatureGauge />
+        
+        {/* Dynamic Connected vs Gated Landing Layout */}
+        {isConnected ? (
+          <div style={{ transition: 'all 0.5s ease' }}>
+            <div className="feed-layout">
+              <div className="feed-column">
+                <StoryFeed />
               </div>
-            </div>
-          </div>
-
-          {/* Cool Feature 1: Live Ticker */}
-          <div style={{ marginTop: '48px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '32px' }}>
-            <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>Live Order Executions</h3>
-            <div style={{ width: '100%', overflow: 'hidden', background: 'rgba(60,61,55,0.2)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px 0', position: 'relative' }}>
-              <div className="ticker-scroll" style={{ display: 'flex', gap: '40px', width: 'max-content' }}>
-                <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                  <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
-                  <span style={{ color: 'var(--color-shift-red)' }}>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
-                  <span style={{ color: 'var(--color-pulse-green)' }}>● BUY WBTC/USDC • $62,450.00 • 0.15 WBTC • 15m ago</span>
-                  <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.22 • 8,900 CNDR • 28m ago</span>
-                  <span style={{ color: 'var(--color-shift-red)' }}>● SELL SOL/USDC • $142.80 • 45 SOL • 34m ago</span>
-                  <span style={{ color: 'var(--color-pulse-green)' }}>● BUY DeFi Renaissance • EXECUTION SUCCESS • 42m ago</span>
-                </div>
-                <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', whiteSpace: 'nowrap' }} aria-hidden="true">
-                  <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
-                  <span style={{ color: 'var(--color-shift-red)' }}>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
-                  <span style={{ color: 'var(--color-pulse-green)' }}>● BUY WBTC/USDC • $62,450.00 • 0.15 WBTC • 15m ago</span>
-                  <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.22 • 8,900 CNDR • 28m ago</span>
-                  <span style={{ color: 'var(--color-shift-red)' }}>● SELL SOL/USDC • $142.80 • 45 SOL • 34m ago</span>
-                  <span style={{ color: 'var(--color-pulse-green)' }}>● BUY DeFi Renaissance • EXECUTION SUCCESS • 42m ago</span>
+              <div className="sidebar-column">
+                <div className="clay-glass" style={{ padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)' }}>
+                  <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: 'var(--space-md)' }}>Current Market Mood</h3>
+                  <TemperatureGauge />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Cool Feature 2: Protocol Performance Stats */}
-          <div style={{ marginTop: '48px' }}>
-            <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>System Performance</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-              <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Autonomous Win Rate</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-pulse-green)' }}>74.8%</div>
+            {/* Live executions list */}
+            <div style={{ marginTop: '48px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '32px' }}>
+              <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>Live Order Executions</h3>
+              <div style={{ width: '100%', overflow: 'hidden', background: 'rgba(60,61,55,0.2)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px 0', position: 'relative' }}>
+                <div className="ticker-scroll" style={{ display: 'flex', gap: '40px', width: 'max-content' }}>
+                  <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
+                    <span style={{ color: 'var(--color-shift-red)' }}>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
+                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY WBTC/USDC • $62,450.00 • 0.15 WBTC • 15m ago</span>
+                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.22 • 8,900 CNDR • 28m ago</span>
+                    <span style={{ color: 'var(--color-shift-red)' }}>● SELL SOL/USDC • $142.80 • 45 SOL • 34m ago</span>
+                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY DeFi Renaissance • EXECUTION SUCCESS • 42m ago</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', whiteSpace: 'nowrap' }} aria-hidden="true">
+                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
+                    <span style={{ color: 'var(--color-shift-red)' }}>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
+                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY WBTC/USDC • $62,450.00 • 0.15 WBTC • 15m ago</span>
+                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.22 • 8,900 CNDR • 28m ago</span>
+                    <span style={{ color: 'var(--color-shift-red)' }}>● SELL SOL/USDC • $142.80 • 45 SOL • 34m ago</span>
+                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY DeFi Renaissance • EXECUTION SUCCESS • 42m ago</span>
+                  </div>
+                </div>
               </div>
-              <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total Volume Executed</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-linen)' }}>$1,248,390</div>
-              </div>
-              <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Average Execution Speed</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-wire-gold)' }}>240ms</div>
-              </div>
-              <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Average Order Slippage</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-data-blue)' }}>&lt; 0.08%</div>
+            </div>
+
+            {/* Performance Stats */}
+            <div style={{ marginTop: '48px' }}>
+              <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>System Performance</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
+                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Autonomous Win Rate</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-pulse-green)' }}>74.8%</div>
+                </div>
+                <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
+                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total Volume Executed</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-linen)' }}>$1,248,390</div>
+                </div>
+                <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
+                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Average Execution Speed</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-wire-gold)' }}>240ms</div>
+                </div>
+                <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
+                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Average Order Slippage</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-data-blue)' }}>&lt; 0.08%</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Connect Overlay Box (Centered on page when disconnected) */}
-        {!isConnected && (
-          <div 
-            className="clay-glass"
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 20,
-              width: '90%',
-              maxWidth: '520px',
-              padding: '44px 32px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '18px',
-              border: '1px solid rgba(212, 168, 83, 0.3)',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.85), inset 0 1px 0 rgba(212, 168, 83, 0.15)'
-            }}
-          >
-            <h2 style={{ fontSize: '1.5rem', color: 'var(--color-wire-gold)', fontWeight: 700, fontFamily: 'var(--font-display)', margin: 0 }}>
-              Unlock Market Intelligence
-            </h2>
-            <p style={{ fontSize: '0.88rem', color: 'var(--color-sage)', lineHeight: '1.65', fontFamily: 'var(--font-body)', margin: 0 }}>
-              Connect your Web3 wallet and claim demo CINDER tokens to unlock real-time ETF flows, narrative analysis, and automated trade execution logs on SoDEX.
-            </p>
-            <button 
-              onClick={() => connectWallet()}
-              disabled={isConnecting}
-              className="btn-hero-primary"
+        ) : (
+          /* Disconnected Gated View */
+          <div style={{ position: 'relative' }}>
+            
+            {/* Blurred Preview content container */}
+            <div 
+              onClick={() => setIsConnectModalOpen(true)}
               style={{ 
-                padding: '12px 32px', 
-                fontSize: '0.85rem', 
-                fontWeight: 700, 
-                borderRadius: '12px',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-                border: 'none',
-                marginTop: '6px'
+                filter: 'blur(14px)', 
+                pointerEvents: 'none', 
+                opacity: 0.22, 
+                transition: 'all 0.5s ease',
+                userSelect: 'none',
+                cursor: 'pointer'
               }}
             >
-              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-            </button>
+              {/* Single compact latest story card instead of full huge feed */}
+              <div style={{ maxWidth: '680px', margin: '0 auto' }}>
+                <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>Latest Story</h3>
+                {latestStory ? (
+                  <StoryCard story={latestStory} />
+                ) : (
+                  <div className="story-card-skeleton">
+                    <div className="skeleton-header">
+                      <div className="skeleton-badge shimmer"></div>
+                      <div className="skeleton-date shimmer"></div>
+                    </div>
+                    <div className="skeleton-title shimmer"></div>
+                    <div className="skeleton-summary shimmer"></div>
+                  </div>
+                )}
+              </div>
+
+              {/* Blurred Ticker */}
+              <div style={{ marginTop: '40px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '24px' }}>
+                <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Live Order Executions</h3>
+                <div style={{ width: '100%', overflow: 'hidden', background: 'rgba(60,61,55,0.2)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px 0' }}>
+                  <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
+                    <span>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
+                    <span>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blurred Stats */}
+              <div style={{ marginTop: '40px' }}>
+                <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>System Performance</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
+                      <div style={{ height: '10px', width: '80px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
+                      <div style={{ height: '24px', width: '60px', backgroundColor: 'var(--color-iron)' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Central Call to Action Overlay */}
+            <div 
+              className="clay-glass"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 20,
+                width: '90%',
+                maxWidth: '520px',
+                padding: '44px 32px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '18px',
+                border: '1px solid rgba(212, 168, 83, 0.3)',
+                boxShadow: '0 16px 48px rgba(0,0,0,0.85), inset 0 1px 0 rgba(212, 168, 83, 0.15)'
+              }}
+            >
+              <h2 style={{ fontSize: '1.5rem', color: 'var(--color-wire-gold)', fontWeight: 700, fontFamily: 'var(--font-display)', margin: 0 }}>
+                Unlock Market Intelligence
+              </h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--color-sage)', lineHeight: '1.65', fontFamily: 'var(--font-body)', margin: 0 }}>
+                Connect your Web3 wallet and claim demo CINDER tokens to unlock real-time ETF flows, narrative analysis, and automated trade execution logs on SoDEX.
+              </p>
+              <button 
+                onClick={() => setIsConnectModalOpen(true)}
+                className="btn-hero-primary"
+                style={{ 
+                  padding: '12px 32px', 
+                  fontSize: '0.85rem', 
+                  fontWeight: 700, 
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                  border: 'none',
+                  marginTop: '6px'
+                }}
+              >
+                Connect Wallet to Unlock
+              </button>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Connect Wallet Modal Pop-out Overlay */}
+      <AnimatePresence>
+        {isConnectModalOpen && (
+          <div className="story-modal-wrapper-fixed">
+            <motion.div 
+              className="story-modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsConnectModalOpen(false)}
+            />
+
+            <motion.div 
+              className="story-modal-content clay-glass"
+              initial={{ scale: 0.92, opacity: 0, y: 16 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 16 }}
+              transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+              style={{ maxWidth: '480px' }}
+            >
+              <div className="story-modal-header">
+                <button 
+                  onClick={() => setIsConnectModalOpen(false)} 
+                  className="story-modal-back-btn"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 8H2M2 8L7 13M2 8L7 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span>Back</span>
+                </button>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-wire-gold)', fontWeight: 700 }}>
+                  Demo Connection
+                </div>
+              </div>
+
+              <div className="story-modal-scroll-area" style={{ padding: '28px 24px', textAlign: 'center' }}>
+                <h2 style={{ fontSize: '1.40rem', color: 'var(--color-linen)', fontFamily: 'var(--font-display)', marginBottom: '12px', fontWeight: 700 }}>
+                  Connect Wallet
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-sage)', lineHeight: '1.6', fontFamily: 'var(--font-body)', marginBottom: '24px' }}>
+                  Connect Web3 wallet to access ETF flow trends, regime shift alerts, and automated execution signatures.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button 
+                    onClick={() => handleConnectProvider('MetaMask')}
+                    className="clay-glass"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(236,223,204,0.06)',
+                      background: 'rgba(236,223,204,0.02)',
+                      color: 'var(--color-linen)',
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#E2761B' }} />
+                    <span>MetaMask</span>
+                  </button>
+
+                  <button 
+                    onClick={() => handleConnectProvider('WalletConnect')}
+                    className="clay-glass"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(236,223,204,0.06)',
+                      background: 'rgba(236,223,204,0.02)',
+                      color: 'var(--color-linen)',
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B99FC' }} />
+                    <span>WalletConnect</span>
+                  </button>
+
+                  <button 
+                    onClick={() => handleConnectProvider('Coinbase Wallet')}
+                    className="clay-glass"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(236,223,204,0.06)',
+                      background: 'rgba(236,223,204,0.02)',
+                      color: 'var(--color-linen)',
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0052FF' }} />
+                    <span>Coinbase Wallet</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

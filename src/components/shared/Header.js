@@ -43,23 +43,25 @@ export default function Header() {
         </div>
         
         <div className="nav-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-          <ul className="nav-links">
-            <li>
-              <Link href="/" className={pathname === '/' ? 'active' : ''}>
-                Feed
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard" className={pathname === '/dashboard' ? 'active' : ''}>
-                Dashboard
-              </Link>
-            </li>
-            <li>
-              <Link href="/portfolio" className={pathname === '/portfolio' ? 'active' : ''}>
-                Portfolio
-              </Link>
-            </li>
-          </ul>
+          {isConnected && (
+            <ul className="nav-links">
+              <li>
+                <Link href="/" className={pathname === '/' ? 'active' : ''}>
+                  Feed
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className={pathname === '/dashboard' ? 'active' : ''}>
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link href="/portfolio" className={pathname === '/portfolio' ? 'active' : ''}>
+                  Portfolio
+                </Link>
+              </li>
+            </ul>
+          )}
           
           <div style={{ position: 'relative' }}>
             {isConnected ? (
