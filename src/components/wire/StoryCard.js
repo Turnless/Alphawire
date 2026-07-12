@@ -199,13 +199,20 @@ export default function StoryCard({ story, isDetail = false }) {
       ? JSON.parse(narrative_state) 
       : narrative_state;
 
+    const getTempColor = (t) => {
+      if (t >= 80) return 'var(--color-shift-red)';
+      if (t >= 50) return 'var(--color-wire-gold)';
+      return 'var(--color-data-blue)';
+    };
+
     return (
       <div className="narrative-tags-container">
         {Object.entries(parsedState).map(([narId, temp]) => {
           const tempVal = parseFloat(temp);
           return (
             <span key={narId} className="narrative-tag">
-              {NARRATIVE_NAMES[narId] || narId} {tempVal.toFixed(1)}°
+              <span className="narrative-tag-dot" style={{ backgroundColor: getTempColor(tempVal) }} />
+              {NARRATIVE_NAMES[narId] || narId} {tempVal.toFixed(0)}°
             </span>
           );
         })}
@@ -221,9 +228,10 @@ export default function StoryCard({ story, isDetail = false }) {
         <header className="story-detail-header">
           <div className="story-meta-left">
             <span className={`story-type-badge ${type}`}>
-              {type === 'breaking' && 'BREAKING'}
-              {type === 'deep_dive' && 'DEEP DIVE'}
-              {type === 'pulse' && 'MARKET PULSE'}
+              <span className="story-badge-dot" />
+              {type === 'breaking' && 'Breaking'}
+              {type === 'deep_dive' && 'Deep Dive'}
+              {type === 'pulse' && 'Market Pulse'}
             </span>
             <time className="story-date">{dateFormatted}</time>
           </div>
@@ -266,13 +274,14 @@ export default function StoryCard({ story, isDetail = false }) {
 
   return (
     <article className={cardClasses}>
-      <div>
+      <div className="story-card-top">
         <header className="story-card-header">
           <div className="story-meta-left">
             <span className={`story-type-badge ${type}`}>
-              {type === 'breaking' && 'BREAKING'}
-              {type === 'deep_dive' && 'DEEP DIVE'}
-              {type === 'pulse' && 'MARKET PULSE'}
+              <span className="story-badge-dot" />
+              {type === 'breaking' && 'Breaking'}
+              {type === 'deep_dive' && 'Deep Dive'}
+              {type === 'pulse' && 'Market Pulse'}
             </span>
           </div>
           <time className="story-date">{dateFormatted}</time>
@@ -280,7 +289,7 @@ export default function StoryCard({ story, isDetail = false }) {
 
         <div className="story-card-content">
           <Link href={`/story/${id}`}>
-            <h2 className="story-title" style={{ cursor: 'pointer' }}>{title}</h2>
+            <h2 className="story-title">{title}</h2>
           </Link>
           {summary && <p className="story-summary-text">{summary}</p>}
         </div>
@@ -288,6 +297,12 @@ export default function StoryCard({ story, isDetail = false }) {
 
       <div className="story-card-footer">
         {renderNarrativeTags()}
+        <Link href={`/story/${id}`} className="story-read-link">
+          <span>Read Report</span>
+          <svg className="story-read-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
       </div>
     </article>
   );
