@@ -12,24 +12,16 @@ export default function Header() {
     isConnected, 
     walletAddress, 
     balance, 
-    isConnecting, 
     isClaiming, 
-    connectWallet, 
     disconnectWallet, 
     claimFaucet 
   } = useWallet();
   
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showConnectModal, setShowConnectModal] = useState(false);
 
   const shortAddress = walletAddress 
     ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}` 
     : '';
-
-  const handleConnectClick = (provider) => {
-    connectWallet(provider);
-    setShowConnectModal(false);
-  };
 
   return (
     <header className="site-header" style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
@@ -64,7 +56,7 @@ export default function Header() {
           )}
           
           <div style={{ position: 'relative' }}>
-            {isConnected ? (
+            {isConnected && (
               <div 
                 className="wallet-pill clay-glass" 
                 onClick={() => setShowDropdown(!showDropdown)}
@@ -90,22 +82,6 @@ export default function Header() {
                   {shortAddress}
                 </span>
               </div>
-            ) : (
-              <button 
-                onClick={() => setShowConnectModal(!showConnectModal)}
-                disabled={isConnecting}
-                className="btn-launch"
-                style={{ 
-                  fontFamily: 'var(--font-body)', 
-                  fontWeight: 600, 
-                  fontSize: '0.8rem', 
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  cursor: 'pointer'
-                }}
-              >
-                {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-              </button>
             )}
 
             {/* Wallet Dropdown Options */}
@@ -189,107 +165,6 @@ export default function Header() {
                   >
                     Disconnect Wallet
                   </button>
-                </div>
-              </>
-            )}
-
-            {/* Connect Wallet Options Modal */}
-            {showConnectModal && (
-              <>
-                <div 
-                  style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 }} 
-                  onClick={() => setShowConnectModal(false)}
-                />
-                <div 
-                  className="clay-glass"
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 8px)',
-                    right: 0,
-                    width: '260px',
-                    padding: '16px',
-                    borderRadius: '16px',
-                    zIndex: 999,
-                    backgroundColor: 'var(--color-obsidian)',
-                    border: '1px solid var(--glass-border)',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)'
-                  }}
-                >
-                  <div style={{ fontSize: '0.7rem', color: 'var(--color-sage)', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 600, borderBottom: '1px solid rgba(236,223,204,0.06)', paddingBottom: '6px' }}>Select Wallet Provider</div>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <button 
-                      onClick={() => handleConnectClick('MetaMask')}
-                      className="clay-glass"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(236,223,204,0.06)',
-                        background: 'rgba(236,223,204,0.02)',
-                        color: 'var(--color-linen)',
-                        fontFamily: 'var(--font-body)',
-                        fontSize: '0.8rem',
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#E2761B' }} />
-                      <span>MetaMask</span>
-                    </button>
-
-                    <button 
-                      onClick={() => handleConnectClick('WalletConnect')}
-                      className="clay-glass"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(236,223,204,0.06)',
-                        background: 'rgba(236,223,204,0.02)',
-                        color: 'var(--color-linen)',
-                        fontFamily: 'var(--font-body)',
-                        fontSize: '0.8rem',
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B99FC' }} />
-                      <span>WalletConnect</span>
-                    </button>
-
-                    <button 
-                      onClick={() => handleConnectClick('Coinbase Wallet')}
-                      className="clay-glass"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(236,223,204,0.06)',
-                        background: 'rgba(236,223,204,0.02)',
-                        color: 'var(--color-linen)',
-                        fontFamily: 'var(--font-body)',
-                        fontSize: '0.8rem',
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0052FF' }} />
-                      <span>Coinbase Wallet</span>
-                    </button>
-                  </div>
                 </div>
               </>
             )}
