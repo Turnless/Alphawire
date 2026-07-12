@@ -151,7 +151,7 @@ export default function QuickTrade({ onTradeSuccess }) {
 
   return (
     <div className="quick-trade clay-glass" style={{ padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+      <div className="portfolio-card-header">
         <div>
           <h3 className="section-heading" style={{ fontSize: '1.25rem' }}>
             Quick Trade Execution
@@ -250,7 +250,7 @@ export default function QuickTrade({ onTradeSuccess }) {
             </div>
 
             {/* Order Type and Quantity */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="portfolio-grid-cols-2">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-sage)' }}>Order Type</label>
                 <select

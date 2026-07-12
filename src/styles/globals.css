@@ -531,6 +531,19 @@ input, textarea, select {
 /* ----------------------------------------------------------
    9. Data Table Styles
    ---------------------------------------------------------- */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: var(--space-md);
+}
+
+.table-container table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -902,6 +915,29 @@ input, textarea, select {
    13. Responsive Breakpoints
    ---------------------------------------------------------- */
 
+/* Tablet/Mobile Header Layout: below 768px */
+@media (max-width: 768px) {
+  .site-header .btn-launch {
+    display: none !important;
+  }
+  .nav-links {
+    gap: var(--space-md) !important;
+  }
+  .nav-links a {
+    font-size: 0.825rem !important;
+  }
+}
+
+/* Mobile Header Details: below 639px */
+@media (max-width: 639px) {
+  .live-indicator .status-text {
+    display: none !important;
+  }
+  .logo-link {
+    font-size: 1.15rem !important;
+  }
+}
+
 /* Mobile-first: below 640px */
 @media (max-width: 639px) {
   .container {
@@ -910,10 +946,6 @@ input, textarea, select {
 
   .site-header {
     height: 56px;
-  }
-
-  .nav-links {
-    display: none;
   }
 
   .grid-2,

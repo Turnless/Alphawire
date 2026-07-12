@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 export default function TradeHistory({ trades = [] }) {
   return (
     <div className="trade-history clay-glass" style={{ padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+      <div className="portfolio-card-header">
         <div>
           <h3 className="section-heading" style={{ fontSize: '1.25rem' }}>
             Completed Execution History

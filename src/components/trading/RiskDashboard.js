@@ -165,7 +165,7 @@ export default function RiskDashboard({
 
               return (
                 <div key={pos.asset} style={{ backgroundColor: 'rgba(60, 61, 55, 0.25)', border: '1px solid var(--glass-border)', padding: '14px', borderRadius: 'var(--radius-lg)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', fontFamily: 'var(--font-body)' }}>
+                  <div className="stop-loss-row" style={{ fontSize: '0.78rem', fontFamily: 'var(--font-body)' }}>
                     <span style={{ fontWeight: 700, color: 'var(--color-linen)' }}>{pos.asset}-USDC</span>
                     <span style={{ color: 'var(--color-sage)' }}>
                       Current: <span style={{ color: 'var(--color-linen)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>${curPrice.toLocaleString()}</span> | 

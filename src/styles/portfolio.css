@@ -1,5 +1,5 @@
 /* ============================================================
-   AlphaWire - Portfolio & Trading Page Styles
+   Cinder - Portfolio & Trading Page Styles
    ============================================================ */
 
 .portfolio-grid {
@@ -19,22 +19,55 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
+  min-width: 0; /* Override default min-content behavior to prevent wide tables from stretching columns */
+}
+
+.portfolio-page-container {
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
+}
+
+@media (max-width: 639px) {
+  .portfolio-page-container {
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-md);
+  }
 }
 
 .portfolio-col-4 {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  position: sticky;
-  top: 90px;
+  min-width: 0; /* Prevents input fields or charts from stretching the sidebar column */
+}
+
+/* Card panel min-width constraints */
+.portfolio-view,
+.trade-history,
+.quick-trade,
+.risk-dashboard {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .portfolio-col-4 {
+    position: sticky;
+    top: 90px;
+  }
 }
 
 /* Stat bar grid layout */
 .stat-bar-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--space-md);
   margin-bottom: var(--space-xl);
+}
+
+@media (min-width: 480px) {
+  .stat-bar-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (min-width: 768px) {
@@ -63,6 +96,50 @@
   font-size: 1.5rem;
   color: var(--color-linen);
   margin-top: 4px;
+}
+
+/* Responsive Card Headers */
+.portfolio-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+@media (min-width: 640px) {
+  .portfolio-card-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+/* Responsive Grid Columns (2 columns on tablet/desktop, 1 column on mobile) */
+.portfolio-grid-cols-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .portfolio-grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Responsive Stop Loss items */
+.stop-loss-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (min-width: 640px) {
+  .stop-loss-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 }
 
 /* Slider Controls */

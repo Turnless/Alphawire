@@ -45,7 +45,7 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
 
   return (
     <div className="portfolio-view clay-glass" style={{ padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
+      <div className="portfolio-card-header">
         <div>
           <h3 className="section-heading" style={{ fontSize: '1.25rem' }}>
             Live Portfolio Overview
@@ -54,7 +54,7 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
             Asset allocations and position values on SoDEX
           </p>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'left' }}>
           <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', color: 'var(--color-sage)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>
             Total Portfolio Value
           </div>
@@ -66,7 +66,7 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
 
       {/* Allocation breakdown bar */}
       <div style={{ marginBottom: 'var(--space-lg)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--color-sage)', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--color-sage)', marginBottom: '8px' }}>
           <span>Asset Allocation</span>
           <span>
             Cash: <span style={{ fontFamily: 'var(--font-mono)' }}>{((parsedBalance / totalValue) * 100).toFixed(1)}%</span> | 

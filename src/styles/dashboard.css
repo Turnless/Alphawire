@@ -29,7 +29,7 @@
 /* Bubble Map Panel styling */
 .bubble-map-panel {
   width: 100%;
-  height: 360px; /* Mobile height */
+  height: 450px; /* Mobile height */
   padding: var(--space-lg);
   position: relative;
   display: flex;
@@ -39,7 +39,7 @@
 
 @media (min-width: 1024px) {
   .bubble-map-panel {
-    height: 480px; /* Desktop height */
+    height: 520px; /* Desktop height */
   }
 }
 

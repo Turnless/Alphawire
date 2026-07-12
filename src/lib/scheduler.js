@@ -90,7 +90,7 @@ stopLossMonitoringJob.start();
 
 console.log('⏰ All cron schedules successfully started!');
 
-export default {
+const scheduler = {
   hourlyNewsJob,
   etfFlowsJob,
   sectorPerformanceJob,
@@ -98,3 +98,5 @@ export default {
   dailyDeepDiveJob,
   stopLossMonitoringJob
 };
+
+export default scheduler;

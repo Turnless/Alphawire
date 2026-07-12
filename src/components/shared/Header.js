@@ -27,7 +27,7 @@ export default function Header() {
             </li>
             <li>
               <Link href="/dashboard" className={pathname === '/dashboard' ? 'active' : ''}>
-                Narrative Dashboard
+                Dashboard
               </Link>
             </li>
             <li>

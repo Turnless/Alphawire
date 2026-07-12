@@ -69,9 +69,9 @@ export default function PortfolioPage() {
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--color-obsidian)' }}>
       <Header />
       
-      <div className="container" style={{ padding: 'var(--space-xl) var(--space-lg)' }}>
+      <div className="container portfolio-page-container">
         {/* Page Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-xl)' }}>
+        <div className="portfolio-card-header" style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: 'var(--space-md)', marginBottom: 'var(--space-xl)' }}>
           <div>
             <h1 className="section-heading">Portfolio & Risk Management</h1>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.875rem', color: 'var(--color-sage)', marginTop: 'var(--space-xs)' }}>
