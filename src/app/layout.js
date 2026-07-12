@@ -1,4 +1,6 @@
 import '../styles/globals.css';
+import '../styles/wire.css';
+import { ThemeProvider } from '../components/shared/ThemeProvider';
 
 export const metadata = {
   title: '⚡ AlphaWire | Autonomous Market News & Execution',
@@ -8,9 +10,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="dark-theme">
+      <ThemeProvider>
         {children}
-      </body>
+      </ThemeProvider>
     </html>
   );
 }

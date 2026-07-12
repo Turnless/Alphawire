@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { createClient } from '@libsql/client';
 
 // Initializing connection to Turso DB (libSQL) using environment variables
@@ -13,8 +15,13 @@ const client = createClient({
  * @returns {Promise<Array>} List of rows matching the query
  */
 export async function query(sql, params = []) {
-  // TODO: Implement async query method using client.execute()
-  return [];
+  try {
+    const res = await client.execute({ sql, args: params });
+    return res.rows;
+  } catch (err) {
+    console.error('Database query error:', err, 'SQL:', sql);
+    throw err;
+  }
 }
 
 /**
@@ -24,8 +31,16 @@ export async function query(sql, params = []) {
  * @returns {Promise<Object>} Execution result summary
  */
 export async function execute(sql, params = []) {
-  // TODO: Implement async execution method using client.execute()
-  return { rowsAffected: 0 };
+  try {
+    const res = await client.execute({ sql, args: params });
+    return {
+      rowsAffected: res.rowsAffected,
+      lastInsertRowid: res.lastInsertRowid
+    };
+  } catch (err) {
+    console.error('Database execution error:', err, 'SQL:', sql);
+    throw err;
+  }
 }
 
 /**
@@ -34,8 +49,12 @@ export async function execute(sql, params = []) {
  * @returns {Promise<Array>} Results of each statement execution
  */
 export async function batch(statements) {
-  // TODO: Implement async batch execution using client.batch()
-  return [];
+  try {
+    return await client.batch(statements);
+  } catch (err) {
+    console.error('Database batch transaction error:', err);
+    throw err;
+  }
 }
 
 /**
@@ -43,5 +62,33 @@ export async function batch(statements) {
  * @returns {Promise<void>}
  */
 export async function initializeDb() {
-  // TODO: Read migration file migrations/0001_init.sql and run statements
+  try {
+    const migrationPath = path.join(process.cwd(), 'migrations', '0001_init.sql');
+    if (fs.existsSync(migrationPath)) {
+      const sqlContent = fs.readFileSync(migrationPath, 'utf8');
+      const statements = sqlContent
+        .split(/;\s*[\r\n]+/)
+        .map(stmt => {
+          return stmt
+            .split('\n')
+            .filter(line => !line.trim().startsWith('--'))
+            .join('\n')
+            .trim();
+        })
+        .filter(stmt => stmt.length > 0);
+
+      const batchStmts = statements.map(sql => ({
+        sql: sql.endsWith(';') ? sql : sql + ';',
+        args: []
+      }));
+      
+      await batch(batchStmts);
+      console.log('✅ Database schema migration successfully initialized!');
+    } else {
+      console.warn(`⚠️ Migration file not found at ${migrationPath}`);
+    }
+  } catch (err) {
+    console.error('❌ Failed to auto-initialize DB:', err);
+  }
 }
+

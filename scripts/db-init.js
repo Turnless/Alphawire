@@ -28,8 +28,14 @@ async function init() {
     // A robust way for this schema is to split by semicolon followed by newline
     const statements = sqlContent
       .split(/;\s*[\r\n]+/)
-      .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+      .map(stmt => {
+        return stmt
+          .split('\n')
+          .filter(line => !line.trim().startsWith('--'))
+          .join('\n')
+          .trim();
+      })
+      .filter(stmt => stmt.length > 0);
 
     console.log(`🚀 Executing ${statements.length} migration statements...`);
 
