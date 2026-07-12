@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import FlowChart from './FlowChart';
 import SectorHeatmap from './SectorHeatmap';
 
@@ -145,8 +147,23 @@ function convertTableToHTML(rows) {
   return html;
 }
 
+function getRelativeTimeString(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+}
+
 export default function StoryCard({ story, isDetail = false }) {
   const { id, type, title, body, summary, chart_data, narrative_state, published_at } = story;
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Format Date (No raw system fallbacks, using clean format)
   const dateFormatted = new Date(published_at).toLocaleString('en-US', {
@@ -158,7 +175,9 @@ export default function StoryCard({ story, isDetail = false }) {
     timeZoneName: 'short'
   });
 
-  // Render markdown body alongside inline charts (Only for details view)
+  const relativeTime = getRelativeTimeString(published_at);
+
+  // Render markdown body alongside inline charts (Only for details view or expanded cards)
   const renderBodyContent = () => {
     if (!body) return null;
 
@@ -220,7 +239,13 @@ export default function StoryCard({ story, isDetail = false }) {
     );
   };
 
-  const cardClasses = `story-card clay-glass ${type === 'breaking' ? 'story-breaking' : ''}`;
+  const handleToggle = (e) => {
+    if (e.metaKey || e.ctrlKey || e.button === 1) return;
+    e.preventDefault();
+    setIsExpanded(!isExpanded);
+  };
+
+  const cardClasses = `story-card clay-glass ${type === 'breaking' ? 'story-breaking' : ''} ${isExpanded ? 'is-expanded' : ''}`;
 
   if (isDetail) {
     return (
@@ -274,7 +299,7 @@ export default function StoryCard({ story, isDetail = false }) {
 
   return (
     <article className={cardClasses}>
-      <div className="story-card-top">
+      <div className="story-card-top" onClick={handleToggle} style={{ cursor: 'pointer' }}>
         <header className="story-card-header">
           <div className="story-meta-left">
             <span className={`story-type-badge ${type}`}>
@@ -284,25 +309,72 @@ export default function StoryCard({ story, isDetail = false }) {
               {type === 'pulse' && 'Market Pulse'}
             </span>
           </div>
-          <time className="story-date">{dateFormatted}</time>
+          <time className="story-date" title={dateFormatted}>{relativeTime}</time>
         </header>
 
         <div className="story-card-content">
-          <Link href={`/story/${id}`}>
+          <Link href={`/story/${id}`} onClick={handleToggle}>
             <h2 className="story-title">{title}</h2>
           </Link>
           {summary && <p className="story-summary-text">{summary}</p>}
         </div>
       </div>
 
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            {type === 'breaking' && chart_data?.execution && (
+              <div className="clay-glass breaking-execution-banner" style={{ margin: '12px 0 20px 0', borderLeft: '3px solid var(--color-shift-red)' }}>
+                <div className="execution-banner-title" style={{ fontSize: '0.8rem', color: 'var(--color-shift-red)', fontWeight: 700, marginBottom: '6px' }}>EXECUTION DETAILS</div>
+                <div className="execution-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', fontSize: '0.8rem' }}>
+                  <div>
+                    <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Asset Pair:</span>{' '}
+                    <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.pair}</span>
+                  </div>
+                  <div>
+                    <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Side:</span>{' '}
+                    <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.side}</span>
+                  </div>
+                  <div>
+                    <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Qty:</span>{' '}
+                    <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>{chart_data.execution.qty}</span>
+                  </div>
+                  <div>
+                    <span className="execution-detail-label" style={{ color: 'var(--color-sage)' }}>Price:</span>{' '}
+                    <span className="execution-detail-value" style={{ color: 'var(--color-linen)', fontWeight: 600 }}>${parseFloat(chart_data.execution.price || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="story-expanded-body" style={{ borderTop: '1px solid rgba(236, 223, 204, 0.08)', paddingTop: '16px', marginBottom: '20px' }}>
+              {renderBodyContent()}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="story-card-footer">
         {renderNarrativeTags()}
-        <Link href={`/story/${id}`} className="story-read-link">
-          <span>Read Report</span>
-          <svg className="story-read-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <a href={`/story/${id}`} onClick={handleToggle} className="story-read-link">
+          <span>{isExpanded ? 'Close Report' : 'Read Report'}</span>
+          <svg 
+            className="story-read-arrow" 
+            width="16" 
+            height="16" 
+            viewBox="0 0 16 16" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ transform: isExpanded ? 'rotate(-90deg)' : 'none' }}
+          >
             <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </Link>
+        </a>
       </div>
     </article>
   );

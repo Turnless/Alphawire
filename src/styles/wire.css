@@ -286,6 +286,17 @@
   transform: translateX(3px);
 }
 
+.story-card.is-expanded {
+  transform: none !important;
+  border-color: rgba(212, 168, 83, 0.4) !important;
+  box-shadow: 0 8px 24px rgba(15, 16, 14, 0.6) !important;
+}
+
+.story-card.is-expanded .story-read-link {
+  opacity: 1;
+  transform: translateX(0);
+}
+
 /* Details and Markdown inside single Story view */
 .story-detail-wrapper {
   max-width: 720px;

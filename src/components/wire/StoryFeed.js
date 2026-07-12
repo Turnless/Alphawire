@@ -188,7 +188,14 @@ export default function StoryFeed() {
           animate="show"
           layout
         >
-          {stories.map((story) => (
+          {stories
+            .slice()
+            .sort((a, b) => {
+              if (a.type === 'breaking' && b.type !== 'breaking') return -1;
+              if (a.type !== 'breaking' && b.type === 'breaking') return 1;
+              return new Date(b.published_at) - new Date(a.published_at);
+            })
+            .map((story) => (
             <motion.div
               key={story.id}
               variants={itemVariants}
