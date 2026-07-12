@@ -1,0 +1,12 @@
+/* Wire page styling stubs */
+.story-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.story-card {
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}

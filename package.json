@@ -1,0 +1,27 @@
+{
+  "name": "alphawire",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.9.0",
+    "d3": "^7.8.5",
+    "ethers": "^5.7.2",
+    "framer-motion": "^11.0.0",
+    "next": "^14.2.3",
+    "node-cron": "^3.0.3",
+    "openai": "^4.47.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.3"
+  }
+}

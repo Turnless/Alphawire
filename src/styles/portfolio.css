@@ -1,0 +1,13 @@
+/* Portfolio page styling stubs */
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: 8fr 4fr;
+  gap: 1.5rem;
+}
+.portfolio-view, .trade-history, .quick-trade, .risk-dashboard {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
