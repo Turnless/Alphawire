@@ -134,7 +134,15 @@ export default function HomePage() {
       </section>
 
       {/* Feed scrolls up and overlays the hero */}
-      <div className="feed-overlay container" style={{ position: 'relative', zIndex: 10, paddingBottom: '60px' }}>
+      <div 
+        className="feed-overlay container" 
+        style={{ 
+          position: 'relative', 
+          zIndex: 10, 
+          paddingBottom: '60px',
+          minHeight: isConnected ? 'auto' : '680px'
+        }}
+      >
         
         {/* Dynamic Connected vs Gated Landing Layout */}
         {isConnected ? (
@@ -203,56 +211,68 @@ export default function HomePage() {
           /* Disconnected Gated View */
           <div style={{ position: 'relative' }}>
             
-            {/* Blurred Preview content container */}
+            {/* Crisp readable section header outside the blurred container */}
+            <div style={{ maxWidth: '680px', margin: '0 auto 20px auto' }}>
+              <h3 className="section-heading" style={{ fontSize: '1.15rem', color: 'var(--color-linen)', borderLeft: '3px solid var(--color-wire-gold)', paddingLeft: '16px' }}>
+                Latest Story
+              </h3>
+            </div>
+
+            {/* Clickable Gated Area Wrapper */}
             <div 
               onClick={() => setIsConnectModalOpen(true)}
-              style={{ 
-                filter: 'blur(14px)', 
-                pointerEvents: 'none', 
-                opacity: 0.22, 
-                transition: 'all 0.5s ease',
-                userSelect: 'none',
-                cursor: 'pointer'
-              }}
+              style={{ cursor: 'pointer' }}
             >
-              {/* Single compact latest story card instead of full huge feed */}
-              <div style={{ maxWidth: '680px', margin: '0 auto' }}>
-                <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>Latest Story</h3>
-                {latestStory ? (
-                  <StoryCard story={latestStory} />
-                ) : (
-                  <div className="story-card-skeleton">
-                    <div className="skeleton-header">
-                      <div className="skeleton-badge shimmer"></div>
-                      <div className="skeleton-date shimmer"></div>
-                    </div>
-                    <div className="skeleton-title shimmer"></div>
-                    <div className="skeleton-summary shimmer"></div>
-                  </div>
-                )}
-              </div>
-
-              {/* Blurred Ticker */}
-              <div style={{ marginTop: '40px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '24px' }}>
-                <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Live Order Executions</h3>
-                <div style={{ width: '100%', overflow: 'hidden', background: 'rgba(60,61,55,0.2)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px 0' }}>
-                  <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
-                    <span>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
-                    <span>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
+              {/* Blurred Preview content container */}
+              <div 
+                style={{ 
+                  filter: 'blur(14px)', 
+                  opacity: 0.22, 
+                  transition: 'all 0.5s ease',
+                  userSelect: 'none',
+                  pointerEvents: 'none'
+                }}
+              >
+                {/* Single compact latest story card instead of full huge feed */}
+                <div style={{ maxWidth: '680px', margin: '0 auto' }}>
+                  <div style={{ maxHeight: '200px', overflow: 'hidden', borderRadius: '16px', border: '1px solid var(--glass-border)', background: 'var(--glass-surface)' }}>
+                    {latestStory ? (
+                      <StoryCard story={latestStory} />
+                    ) : (
+                      <div className="story-card-skeleton">
+                        <div className="skeleton-header">
+                          <div className="skeleton-badge shimmer"></div>
+                          <div className="skeleton-date shimmer"></div>
+                        </div>
+                        <div className="skeleton-title shimmer"></div>
+                        <div className="skeleton-summary shimmer"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* Blurred Stats */}
-              <div style={{ marginTop: '40px' }}>
-                <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>System Performance</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                      <div style={{ height: '10px', width: '80px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
-                      <div style={{ height: '24px', width: '60px', backgroundColor: 'var(--color-iron)' }} />
+                {/* Blurred Ticker */}
+                <div style={{ marginTop: '40px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '24px' }}>
+                  <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Live Order Executions</h3>
+                  <div style={{ width: '100%', overflow: 'hidden', background: 'rgba(60,61,55,0.2)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px 0' }}>
+                    <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
+                      <span>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
+                      <span>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                {/* Blurred Stats */}
+                <div style={{ marginTop: '40px' }}>
+                  <h3 className="section-heading" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>System Performance</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
+                        <div style={{ height: '10px', width: '80px', backgroundColor: 'var(--color-iron)', marginBottom: '8px' }} />
+                        <div style={{ height: '24px', width: '60px', backgroundColor: 'var(--color-iron)' }} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -262,8 +282,8 @@ export default function HomePage() {
               className="clay-glass"
               style={{
                 position: 'absolute',
-                top: '50%',
-                left: '50%',
+                top: '55%',
+                left: '55%',
                 transform: 'translate(-50%, -50%)',
                 zIndex: 20,
                 width: '90%',
