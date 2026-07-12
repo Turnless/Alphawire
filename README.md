@@ -349,6 +349,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Built with ⚡ by [Your Name] for the SoSoValue × SoDEX Buildathon</strong><br/>
+  <strong>Built with by turnless for the SoSoValue × SoDEX Buildathon</strong><br/>
   <em>"What if Bloomberg could trade its own stories?"</em>
 </p>
