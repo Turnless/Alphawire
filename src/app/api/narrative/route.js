@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '../../../lib/db';
 import { updateNarrativeTemperatures } from '../../../engine/narrative';
+import { rateLimit } from '../../../lib/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,12 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+    const rateResult = rateLimit(ip);
+    if (!rateResult.success) {
+      return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     // Fetch latest temperature reading for each narrative archetype
     const latestTemps = await query(`
       SELECT nh.narrative_id, nh.temperature, nh.news_score, nh.flow_score, nh.sector_score, nh.recorded_at
@@ -81,6 +88,12 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+    const rateResult = rateLimit(ip);
+    if (!rateResult.success) {
+      return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const updatedTemps = await updateNarrativeTemperatures();
     return NextResponse.json({
       success: true,

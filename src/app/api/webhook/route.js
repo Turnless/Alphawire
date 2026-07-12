@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyTelegramSignature, sendMessage } from '../../../lib/telegram';
 import { query } from '../../../lib/db';
 import { getAccountState } from '../../../lib/sodex';
+import { rateLimit } from '../../../lib/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,12 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+    const rateResult = rateLimit(ip);
+    if (!rateResult.success) {
+      return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     const signature = request.headers.get('x-telegram-bot-api-secret-token') || '';
     const bodyText = await request.text();
     

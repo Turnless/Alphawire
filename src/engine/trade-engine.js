@@ -61,6 +61,14 @@ async function isKillSwitchActive() {
  * @returns {Promise<number>} Portfolio value in USD
  */
 async function calculatePortfolioValue(userAddress) {
+  const privateKey = process.env.SODEX_API_KEY_PRIVATE_KEY;
+  const isMockMode = !privateKey || 
+                     privateKey === 'your_api_key_private_key_returned_from_addAPIKey' ||
+                     !userAddress ||
+                     userAddress === 'your_evm_wallet_address_0x...';
+  if (isMockMode) {
+    return 10000.00;
+  }
   try {
     const balances = await fetchAccountBalances(userAddress);
     let totalValue = 0;
@@ -425,6 +433,13 @@ export async function runPreTradeChecks(shiftData, accountState) {
   const killSwitch = await isKillSwitchActive();
   if (killSwitch) {
     failedGates.push('KILL_SWITCH_ACTIVE');
+  }
+
+  // 6. Environment separation safety gate
+  const isStaging = process.env.VERCEL_ENV === 'preview' || process.env.VERCEL_ENV === 'development' || process.env.NODE_ENV !== 'production';
+  const isMainnetEndpoint = (process.env.SODEX_API_BASE_URL || '').includes('mainnet');
+  if (isStaging && isMainnetEndpoint) {
+    failedGates.push('STAGING_ENVIRONMENT_MAINNET_URL_BLOCKED');
   }
 
   return {

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { query, execute } from '../../../lib/db';
+import { rateLimit } from '../../../lib/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -187,6 +188,12 @@ async function ensureDbData() {
 
 export async function GET(request) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+    const rateResult = rateLimit(ip);
+    if (!rateResult.success) {
+      return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     await ensureDbData();
 
     const { searchParams } = new URL(request.url);
@@ -260,6 +267,12 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+    const rateResult = rateLimit(ip);
+    if (!rateResult.success) {
+      return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
+
     await ensureDbData();
     const body = await request.json();
     const {
