@@ -12,6 +12,7 @@ export default function Header() {
     isConnected, 
     walletAddress, 
     balance, 
+    ethBalance,
     isClaiming, 
     disconnectWallet, 
     claimFaucet 
@@ -108,7 +109,12 @@ export default function Header() {
                 >
                   <div style={{ marginBottom: '14px' }}>
                     <div style={{ fontSize: '0.65rem', color: 'var(--color-sage)', textTransform: 'uppercase', marginBottom: '2px', fontWeight: 600 }}>Active Wallet</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--color-linen)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{walletAddress}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-linen)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '4px' }}>{walletAddress}</div>
+                    {ethBalance !== null && (
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-sage)', fontFamily: 'var(--font-mono)' }}>
+                        Balance: <span style={{ color: 'var(--color-linen)' }}>{ethBalance} ETH</span>
+                      </div>
+                    )}
                   </div>
 
                   <button 

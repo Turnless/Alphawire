@@ -6,6 +6,7 @@ const WalletContext = createContext({
   isConnected: false,
   walletAddress: null,
   balance: 0,
+  ethBalance: null,
   isConnecting: false,
   isClaiming: false,
   connectWallet: () => {},
@@ -16,57 +17,137 @@ const WalletContext = createContext({
 export function WalletProvider({ children }) {
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
-  const [balance, setBalance] = useState(0);
+  const [balance, setBalance] = useState(0); // CNDR balance
+  const [ethBalance, setEthBalance] = useState(null); // Real native ETH balance
   const [isConnecting, setIsConnecting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
 
-  // Load wallet state from localStorage on mount (for persistent feel)
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('cinder_wallet_address');
-    const savedBalance = localStorage.getItem('cinder_wallet_balance');
-    if (savedAddress) {
-      setIsConnected(true);
-      setWalletAddress(savedAddress);
-      setBalance(parseFloat(savedBalance || 0));
+  // Sync RPC data for a specific connected address
+  const syncWalletData = async (address) => {
+    if (typeof window === 'undefined' || !window.ethereum) return;
+    try {
+      // 1. Fetch real native ETH balance
+      const hexBalance = await window.ethereum.request({
+        method: 'eth_getBalance',
+        params: [address, 'latest']
+      });
+      const eth = parseFloat((parseInt(hexBalance, 16) / 1e18).toFixed(4));
+      setEthBalance(eth);
+
+      // 2. Fetch or initialize local CNDR test token balance associated with this specific address
+      const key = `cinder_cndr_balance_${address.toLowerCase()}`;
+      let cndr = localStorage.getItem(key);
+      if (cndr === null) {
+        cndr = '500'; // Default initial test tokens
+        localStorage.setItem(key, cndr);
+      }
+      setBalance(parseFloat(cndr));
+    } catch (err) {
+      console.error('Error syncing real Web3 wallet RPC data:', err);
     }
+  };
+
+  // Check if wallet is already pre-authorized on mount
+  useEffect(() => {
+    const initWeb3Wallet = async () => {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts.length > 0) {
+            const address = accounts[0];
+            setWalletAddress(address);
+            setIsConnected(true);
+            await syncWalletData(address);
+          }
+        } catch (err) {
+          console.error('Error checking pre-authorized accounts:', err);
+        }
+      }
+    };
+    initWeb3Wallet();
   }, []);
 
-  const connectWallet = (providerName = 'MetaMask') => {
-    setIsConnecting(true);
-    // Simulate smart contract connection latency
-    setTimeout(() => {
-      // Generate a mock hex address
-      const randomHex = Math.random().toString(16).substring(2, 10);
-      const mockAddress = `0x71C${randomHex.toUpperCase()}F711C309c897C6287A130F339A`;
-      
-      setIsConnected(true);
-      setWalletAddress(mockAddress);
-      const initialBalance = 0;
-      setBalance(initialBalance);
-      setIsConnecting(false);
+  // Listen for wallet accountsChanged and chainChanged events
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.ethereum) return;
 
-      localStorage.setItem('cinder_wallet_address', mockAddress);
-      localStorage.setItem('cinder_wallet_balance', initialBalance.toString());
-    }, 1200);
+    const handleAccounts = async (accounts) => {
+      if (accounts.length === 0) {
+        // User disconnected their wallet
+        setIsConnected(false);
+        setWalletAddress(null);
+        setBalance(0);
+        setEthBalance(null);
+      } else {
+        const address = accounts[0];
+        setWalletAddress(address);
+        setIsConnected(true);
+        await syncWalletData(address);
+      }
+    };
+
+    const handleChain = () => {
+      window.location.reload();
+    };
+
+    window.ethereum.on('accountsChanged', handleAccounts);
+    window.ethereum.on('chainChanged', handleChain);
+
+    return () => {
+      if (window.ethereum.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccounts);
+        window.ethereum.removeListener('chainChanged', handleChain);
+      }
+    };
+  }, []);
+
+  const connectWallet = async () => {
+    if (typeof window === 'undefined') return;
+    
+    if (!window.ethereum) {
+      alert('No Web3 wallet extension detected. Please install MetaMask or another compatible browser extension to use Cinder.');
+      return;
+    }
+
+    setIsConnecting(true);
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (accounts.length > 0) {
+        const address = accounts[0];
+        setWalletAddress(address);
+        setIsConnected(true);
+        await syncWalletData(address);
+      }
+    } catch (err) {
+      console.error('Error connecting to Web3 provider:', err);
+      // User rejected connection or RPC error
+      if (err.code === 4001) {
+        alert('Connection request rejected. Please approve the connection in your wallet.');
+      }
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const disconnectWallet = () => {
     setIsConnected(false);
     setWalletAddress(null);
     setBalance(0);
-    localStorage.removeItem('cinder_wallet_address');
-    localStorage.removeItem('cinder_wallet_balance');
+    setEthBalance(null);
   };
 
   const claimFaucet = () => {
-    if (!isConnected) return;
+    if (!isConnected || !walletAddress) return;
     setIsClaiming(true);
-    // Simulate transaction execution on testnet
+    
+    // Simulate testnet transaction timing
     setTimeout(() => {
-      const newBalance = balance + 1000;
-      setBalance(newBalance);
+      const key = `cinder_cndr_balance_${walletAddress.toLowerCase()}`;
+      const currentCndr = parseFloat(localStorage.getItem(key) || 0);
+      const newCndr = currentCndr + 1000;
+      localStorage.setItem(key, newCndr.toString());
+      setBalance(newCndr);
       setIsClaiming(false);
-      localStorage.setItem('cinder_wallet_balance', newBalance.toString());
     }, 1500);
   };
 
@@ -76,6 +157,7 @@ export function WalletProvider({ children }) {
         isConnected,
         walletAddress,
         balance,
+        ethBalance,
         isConnecting,
         isClaiming,
         connectWallet,
