@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { ethers } from 'ethers';
 
 const WalletContext = createContext({
   isConnected: false,
@@ -34,14 +35,25 @@ export function WalletProvider({ children }) {
       const eth = parseFloat((parseInt(hexBalance, 16) / 1e18).toFixed(4));
       setEthBalance(eth);
 
-      // 2. Fetch or initialize local CNDR test token balance associated with this specific address
-      const key = `cinder_cndr_balance_${address.toLowerCase()}`;
-      let cndr = localStorage.getItem(key);
-      if (cndr === null) {
-        cndr = '500'; // Default initial test tokens
-        localStorage.setItem(key, cndr);
+      // 2. Fetch CNDR token balance from the deployed contract (if address is configured in env)
+      const tokenAddress = process.env.NEXT_PUBLIC_CNDR_TOKEN_ADDRESS;
+      if (tokenAddress && tokenAddress !== '0x...' && tokenAddress !== '') {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const abi = ["function balanceOf(address account) external view returns (uint256)"];
+        const contract = new ethers.Contract(tokenAddress, abi, provider);
+        const cndrWei = await contract.balanceOf(address);
+        const cndrEth = parseFloat(ethers.utils.formatEther(cndrWei));
+        setBalance(cndrEth);
+      } else {
+        // Fallback to local simulated balance if no contract address is set
+        const key = `cinder_cndr_balance_${address.toLowerCase()}`;
+        let cndr = localStorage.getItem(key);
+        if (cndr === null) {
+          cndr = '500'; // Default initial test tokens
+          localStorage.setItem(key, cndr);
+        }
+        setBalance(parseFloat(cndr));
       }
-      setBalance(parseFloat(cndr));
     } catch (err) {
       console.error('Error syncing real Web3 wallet RPC data:', err);
     }
@@ -105,7 +117,7 @@ export function WalletProvider({ children }) {
     if (typeof window === 'undefined') return;
     
     if (!window.ethereum) {
-      alert('No Web3 wallet extension detected. Please install MetaMask or another compatible browser extension to use Cinder.');
+      alert('No Web3 wallet extension detected. Please install a compatible browser wallet (like Rabby or MetaMask) to use Cinder.');
       return;
     }
 
@@ -120,7 +132,6 @@ export function WalletProvider({ children }) {
       }
     } catch (err) {
       console.error('Error connecting to Web3 provider:', err);
-      // User rejected connection or RPC error
       if (err.code === 4001) {
         alert('Connection request rejected. Please approve the connection in your wallet.');
       }
@@ -136,19 +147,51 @@ export function WalletProvider({ children }) {
     setEthBalance(null);
   };
 
-  const claimFaucet = () => {
+  const claimFaucet = async () => {
     if (!isConnected || !walletAddress) return;
     setIsClaiming(true);
-    
-    // Simulate testnet transaction timing
-    setTimeout(() => {
-      const key = `cinder_cndr_balance_${walletAddress.toLowerCase()}`;
-      const currentCndr = parseFloat(localStorage.getItem(key) || 0);
-      const newCndr = currentCndr + 1000;
-      localStorage.setItem(key, newCndr.toString());
-      setBalance(newCndr);
+
+    const tokenAddress = process.env.NEXT_PUBLIC_CNDR_TOKEN_ADDRESS;
+    if (!tokenAddress || tokenAddress === '0x...' || tokenAddress === '') {
+      // Fallback to simulated claim if no contract deployed yet
+      setTimeout(() => {
+        const key = `cinder_cndr_balance_${walletAddress.toLowerCase()}`;
+        const currentCndr = parseFloat(localStorage.getItem(key) || 0);
+        const newCndr = currentCndr + 1000;
+        localStorage.setItem(key, newCndr.toString());
+        setBalance(newCndr);
+        setIsClaiming(false);
+      }, 1500);
+      return;
+    }
+
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      
+      const abi = ["function claimFaucet() external"];
+      const contract = new ethers.Contract(tokenAddress, abi, signer);
+
+      // Trigger the real on-chain transaction
+      const tx = await contract.claimFaucet();
+      
+      // Wait for it to be mined on Arbitrum Sepolia
+      await tx.wait();
+
+      // Sync the new on-chain CNDR and native ETH balances
+      await syncWalletData(walletAddress);
+    } catch (err) {
+      console.error('Error claiming on-chain faucet:', err);
+      
+      // Friendly messaging for the 1-day cooldown revert condition
+      if (err.message && err.message.includes("Cooldown active")) {
+        alert("Faucet claim rejected: Cooldown active. You can only claim once every 24 hours.");
+      } else {
+        alert(err.reason || err.message || "Transaction failed. Make sure you are on Arbitrum Sepolia.");
+      }
+    } finally {
       setIsClaiming(false);
-    }, 1500);
+    }
   };
 
   return (
