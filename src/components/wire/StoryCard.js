@@ -424,7 +424,13 @@ export default function StoryCard({ story, isWide = false }) {
       {/* Render detailed full-screen modal exactly as before */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="story-modal-wrapper-fixed" style={{ zIndex: 2000 }}>
+          <motion.div 
+            className="story-modal-wrapper-fixed" 
+            style={{ zIndex: 2000 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
             <motion.div 
               className="story-modal-backdrop"
               initial={{ opacity: 0 }}
@@ -435,10 +441,10 @@ export default function StoryCard({ story, isWide = false }) {
 
             <motion.div 
               className="story-modal-content clay-glass"
-              initial={{ scale: 0.92, opacity: 0, y: 16 }}
+              initial={{ scale: 0.92, opacity: 0, y: 24 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.92, opacity: 0, y: 16 }}
-              transition={{ type: 'spring', stiffness: 360, damping: 30 }}
+              exit={{ scale: 0.92, opacity: 0, y: 24 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             >
               <div className="story-modal-header">
                 <button 
@@ -500,7 +506,7 @@ export default function StoryCard({ story, isWide = false }) {
                 </div>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

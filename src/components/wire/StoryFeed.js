@@ -289,21 +289,43 @@ export default function StoryFeed({ temperatureWidget }) {
 
           {/* Item 4: Standard Card (1 column) */}
           {filteredList[2] && (
-            <motion.div key={filteredList[2].id} variants={itemVariants} layout>
+            <motion.div 
+              key={filteredList[2].id} 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              layout
+            >
               <StoryCard story={filteredList[2]} />
             </motion.div>
           )}
 
           {/* Item 5: Standard Card (1 column) */}
           {filteredList[3] && (
-            <motion.div key={filteredList[3].id} variants={itemVariants} layout>
+            <motion.div 
+              key={filteredList[3].id} 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              layout
+            >
               <StoryCard story={filteredList[3]} />
             </motion.div>
           )}
 
           {/* Item 6: Weather-styled Market Temperature Gauge Widget (Wide, spans 2 columns) */}
           {temperatureWidget && (
-            <motion.div key="weather-widget" className="edge-card-span-2" variants={itemVariants} layout>
+            <motion.div 
+              key="weather-widget" 
+              className="edge-card-span-2" 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              layout
+            >
               <div className="edge-card-base clay-glass" style={{ height: '100%' }}>
                 <div className="edge-widget-weather">
                   {temperatureWidget}
@@ -314,21 +336,44 @@ export default function StoryFeed({ temperatureWidget }) {
 
           {/* Item 7: Second Wide Card (Wide, spans 2 columns) */}
           {filteredList[4] && (
-            <motion.div key={filteredList[4].id} className="edge-card-span-2" variants={itemVariants} layout>
+            <motion.div 
+              key={filteredList[4].id} 
+              className="edge-card-span-2" 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              layout
+            >
               <StoryCard story={filteredList[4]} isWide={true} />
             </motion.div>
           )}
 
           {/* Item 8: Standard Card (1 column) */}
           {filteredList[5] && (
-            <motion.div key={filteredList[5].id} variants={itemVariants} layout>
+            <motion.div 
+              key={filteredList[5].id} 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              layout
+            >
               <StoryCard story={filteredList[5]} />
             </motion.div>
           )}
 
           {/* Item 9: Headlines Bullet Stack Widget (1 column) */}
           {filteredList.length > 6 && (
-            <motion.div key="headlines-widget" className="edge-card-base clay-glass" variants={itemVariants} layout>
+            <motion.div 
+              key="headlines-widget" 
+              className="edge-card-base clay-glass" 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              layout
+            >
               <div className="edge-widget-headlines">
                 <div className="edge-widget-header">
                   <span className="edge-widget-title">
@@ -350,7 +395,14 @@ export default function StoryFeed({ temperatureWidget }) {
 
           {/* Subsequent items rendered as standard cards */}
           {filteredList.slice(9).map((story) => (
-            <motion.div key={story.id} variants={itemVariants} layout>
+            <motion.div 
+              key={story.id} 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+              layout
+            >
               <StoryCard story={story} />
             </motion.div>
           ))}
