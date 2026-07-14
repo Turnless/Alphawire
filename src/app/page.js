@@ -393,11 +393,11 @@ export default function HomePage() {
                 flexDirection: 'column',
                 gap: '6px'
               }}>
-                <div style={{ color: 'var(--color-sage)' }}>// OFF-CHAIN ORDER PAYLOAD</div>
+                <div style={{ color: 'var(--color-sage)' }}>{"// OFF-CHAIN ORDER PAYLOAD"}</div>
                 <div>{`{`}</div>
-                <div style={{ paddingLeft: '12px' }}>"signer": <span style={{ color: 'var(--color-wire-gold)' }}>"0x71C...39A"</span>,</div>
-                <div style={{ paddingLeft: '12px' }}>"route": <span style={{ color: 'var(--color-data-blue)' }}>"SoDEX_Router"</span>,</div>
-                <div style={{ paddingLeft: '12px' }}>"limit": <span style={{ color: 'var(--color-pulse-green)' }}>15,000 USDC</span></div>
+                <div style={{ paddingLeft: '12px' }}>{`"signer": `}<span style={{ color: 'var(--color-wire-gold)' }}>{`"0x71C...39A"`}</span>,</div>
+                <div style={{ paddingLeft: '12px' }}>{`"route": `}<span style={{ color: 'var(--color-data-blue)' }}>{`"SoDEX_Router"`}</span>,</div>
+                <div style={{ paddingLeft: '12px' }}>{`"limit": `}<span style={{ color: 'var(--color-pulse-green)' }}>{`15,000 USDC`}</span></div>
                 <div>{`}`}</div>
                 <div style={{ borderTop: '1px solid rgba(236,223,204,0.06)', marginTop: '6px', paddingTop: '6px', color: 'var(--color-pulse-green)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   sig: 0x8b32f22d...15e21a
