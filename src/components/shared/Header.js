@@ -63,7 +63,8 @@ export default function Header() {
   };
 
   return (
-    <header className="site-header" style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
+    <>
+      <header className="site-header" style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
       <nav className="nav-container">
         <div className="logo-section">
           <Link href="/" className="logo-link">
@@ -226,9 +227,10 @@ export default function Header() {
           )}
         </div>
       </nav>
+    </header>
 
-      {/* Slide-out Mobile Navigation Drawer */}
-      <AnimatePresence>
+    {/* Slide-out Mobile Navigation Drawer */}
+    <AnimatePresence>
         {isMobileMenuOpen && (
           <>
             {/* Drawer Backdrop Overlay */}
@@ -343,6 +345,6 @@ export default function Header() {
           </>
         )}
       </AnimatePresence>
-    </header>
+    </>
   );
 }
