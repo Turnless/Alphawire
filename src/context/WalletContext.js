@@ -23,6 +23,56 @@ export function WalletProvider({ children }) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
 
+  // Helper: Request wallet to switch or add Arbitrum Sepolia (Chain ID 421614 / 0x66eee)
+  const ensureCorrectNetwork = async () => {
+    if (typeof window === 'undefined' || !window.ethereum) return false;
+    
+    const targetChainId = '0x66eee'; // 421614 in hex
+    
+    try {
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (currentChainId === targetChainId) {
+        return true;
+      }
+      
+      // Request wallet to switch network
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: targetChainId }]
+      });
+      return true;
+    } catch (err) {
+      // Code 4902 indicates that the chain has not been added to the wallet
+      // Rabby sometimes throws general errors, so we catch chain-addition logic robustly
+      if (err.code === 4902 || (err.message && err.message.includes("Unrecognized chain ID"))) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: targetChainId,
+              chainName: 'Arbitrum Sepolia',
+              nativeCurrency: {
+                name: 'Arbitrum ETH',
+                symbol: 'ETH',
+                decimals: 18
+              },
+              rpcUrls: ['https://sepolia-rollup.arbitrum.io/rpc'],
+              blockExplorerUrls: ['https://sepolia.arbiscan.io']
+            }]
+          });
+          return true;
+        } catch (addError) {
+          console.error('Error adding Arbitrum Sepolia chain to wallet:', addError);
+          return false;
+        }
+      }
+      console.error('Error switching to Arbitrum Sepolia network:', err);
+      // Alert the user to switch manually if automated request fails or is rejected
+      alert('Please switch your wallet network to Arbitrum Sepolia to continue.');
+      return false;
+    }
+  };
+
   // Sync RPC data for a specific connected address
   const syncWalletData = async (address) => {
     if (typeof window === 'undefined' || !window.ethereum) return;
@@ -123,6 +173,14 @@ export function WalletProvider({ children }) {
 
     setIsConnecting(true);
     try {
+      // 1. Ensure wallet is set to Arbitrum Sepolia before asking for account permissions
+      const networkOk = await ensureCorrectNetwork();
+      if (!networkOk) {
+        setIsConnecting(false);
+        return;
+      }
+
+      // 2. Request accounts
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       if (accounts.length > 0) {
         const address = accounts[0];
@@ -150,6 +208,13 @@ export function WalletProvider({ children }) {
   const claimFaucet = async () => {
     if (!isConnected || !walletAddress) return;
     setIsClaiming(true);
+
+    // Ensure wallet is set to Arbitrum Sepolia before sending the transaction
+    const networkOk = await ensureCorrectNetwork();
+    if (!networkOk) {
+      setIsClaiming(false);
+      return;
+    }
 
     const tokenAddress = process.env.NEXT_PUBLIC_CNDR_TOKEN_ADDRESS;
     if (!tokenAddress || tokenAddress === '0x...' || tokenAddress === '') {
