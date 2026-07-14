@@ -184,31 +184,77 @@ export default function StoryFeed() {
       return new Date(b.published_at) - new Date(a.published_at);
     });
 
+  const featuredStory = sortedStories[0];
+  const trendingStories = sortedStories.slice(1, 3);
+  const remainingStories = sortedStories.slice(3);
+
   return (
     <div className="story-feed-wrapper">
       <div className="feed-header-row">
-        <h2 className="feed-title">Latest Stories</h2>
-        <span className="feed-count">{stories.length} reports loaded</span>
+        <h2 className="feed-title" style={{ visibility: 'hidden', height: 0, margin: 0, padding: 0 }}>Latest Stories</h2>
+        <span className="feed-count">{stories.length} intelligence reports online</span>
       </div>
 
       <AnimatePresence mode="popLayout">
-        <motion.div 
-          className="story-feed" 
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          layout
-        >
-          {sortedStories.map((story) => (
-            <motion.div
-              key={story.id}
-              variants={itemVariants}
+        <div className="edge-news-portal">
+          
+          {/* Top Feature Grid: Main Hero (Left) & Trending Stack (Right) */}
+          <div className="edge-feature-grid">
+            {/* Left Hero Card */}
+            {featuredStory && (
+              <motion.div
+                key={featuredStory.id}
+                variants={itemVariants}
+                initial="hidden"
+                animate="show"
+                layout
+              >
+                <div style={{ height: '100%' }}>
+                  <StoryCard story={featuredStory} />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Right Trending Stack */}
+            {trendingStories.length > 0 && (
+              <div className="edge-trending-column">
+                {trendingStories.map((story) => (
+                  <motion.div
+                    key={story.id}
+                    variants={itemVariants}
+                    initial="hidden"
+                    animate="show"
+                    layout
+                  >
+                    <StoryCard story={story} />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sub-grid of remaining news stories below the fold */}
+          {remainingStories.length > 0 && (
+            <motion.div 
+              className="edge-sub-grid"
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
               layout
             >
-              <StoryCard story={story} />
+              {remainingStories.map((story) => (
+                <motion.div
+                  key={story.id}
+                  variants={itemVariants}
+                  layout
+                >
+                  <StoryCard story={story} />
+                </motion.div>
+              ))}
             </motion.div>
-          ))}
-        </motion.div>
+          )}
+
+        </div>
       </AnimatePresence>
 
       {hasMore && (

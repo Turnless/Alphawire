@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Header from '../../components/shared/Header';
 import Footer from '../../components/shared/Footer';
@@ -12,6 +12,11 @@ import { useWallet } from '../../context/WalletContext';
 export default function FeedPage() {
   const { isConnected } = useWallet();
   const router = useRouter();
+  const { scrollY } = useScroll();
+
+  // Parallax heading fade-out and translation on scroll
+  const headingY = useTransform(scrollY, [0, 400], [0, -60]);
+  const headingOpacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   // Route protection gating: instantly redirect disconnected users back to landing page
   useEffect(() => {
@@ -32,6 +37,13 @@ export default function FeedPage() {
       {/* Main Feed Container */}
       <section style={{ padding: '40px 0 60px 0' }}>
         <div className="container" style={{ position: 'relative', zIndex: 2 }}>
+          
+          {/* Parallax Display Heading (Edge MSN news style) */}
+          <motion.div style={{ y: headingY, opacity: headingOpacity, transition: 'none' }}>
+            <h1 className="feed-main-heading">
+              Market News That Backs Its Own Trades
+            </h1>
+          </motion.div>
           
           <div className="feed-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
             {/* Desktop Two-Column Layout (Configured by globals.css grid breakpoints) */}
