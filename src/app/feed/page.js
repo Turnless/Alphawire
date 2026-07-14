@@ -15,8 +15,8 @@ export default function FeedPage() {
   const { scrollY } = useScroll();
 
   // Parallax heading fade-out and translation on scroll
-  const headingY = useTransform(scrollY, [0, 400], [0, -60]);
-  const headingOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+  const headingY = useTransform(scrollY, [0, 450], [0, -100]);
+  const headingOpacity = useTransform(scrollY, [0, 320], [1, 0]);
 
   // Route protection gating: instantly redirect disconnected users back to landing page
   useEffect(() => {
@@ -38,69 +38,47 @@ export default function FeedPage() {
       <section style={{ padding: '40px 0 60px 0' }}>
         <div className="container" style={{ position: 'relative', zIndex: 2 }}>
           
-          {/* Parallax Display Heading */}
-          <motion.div style={{ y: headingY, opacity: headingOpacity, transition: 'none' }}>
+          {/* Parallax Display Heading (Edge MSN news style) */}
+          {/* Generous bottom margin (120px) is configured to show the parallax fade-out effect beautifully before stories slide over it */}
+          <motion.div style={{ y: headingY, opacity: headingOpacity, marginBottom: '120px', transition: 'none' }}>
             <h1 
               className="section-heading" 
               style={{ 
-                fontSize: '2rem', 
-                marginBottom: '32px', 
+                fontSize: '2.5rem', 
                 borderLeft: '4px solid var(--color-wire-gold)', 
-                paddingLeft: '16px',
+                paddingLeft: '20px',
                 fontFamily: 'var(--font-display)',
                 fontWeight: 800,
                 textTransform: 'uppercase',
+                color: 'var(--color-linen)',
                 letterSpacing: '-0.02em',
-                lineHeight: 1.15
+                lineHeight: 1.1
               }}
             >
               Market News That Backs Its Own Trades
             </h1>
           </motion.div>
           
-          <div className="feed-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
-            {/* Desktop Two-Column Layout (Configured by globals.css grid breakpoints) */}
-            <div className="feed-layout-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: '32px' }}>
-              
-              {/* Left Column: Live Newsroom Wire Feed */}
-              <div className="feed-column">
-                <StoryFeed />
-              </div>
-
-              {/* Right Column: Market Mood Sidebar */}
-              <div className="sidebar-column">
-                <div 
-                  className="clay-glass" 
-                  style={{ 
-                    padding: '24px', 
-                    borderRadius: '16px',
-                    position: 'sticky',
-                    top: '96px',
-                    border: '1px solid var(--glass-border)',
-                    background: 'var(--glass-surface)',
-                    backdropFilter: 'blur(16px)'
-                  }}
-                >
-                  <h3 
-                    className="section-heading" 
-                    style={{ 
-                      fontSize: '1.15rem', 
-                      marginBottom: '16px',
-                      borderLeft: '3px solid var(--color-wire-gold)',
-                      paddingLeft: '12px'
-                    }}
-                  >
-                    Current Market Mood
-                  </h3>
+          {/* Dynamic 4-Column News Portal Feed */}
+          <div className="feed-layout" style={{ marginTop: '24px' }}>
+            <StoryFeed 
+              temperatureWidget={
+                <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', height: '100%' }}>
+                  <div className="edge-widget-header" style={{ borderBottom: '1px solid rgba(236, 223, 204, 0.08)', paddingBottom: '8px', marginBottom: '4px' }}>
+                    <span className="edge-widget-title">
+                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-wire-gold)', marginRight: '6px' }} />
+                      Market Temperature
+                    </span>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--color-sage)' }}>Gauge</span>
+                  </div>
                   <TemperatureGauge />
                 </div>
-              </div>
-
-            </div>
+              } 
+            />
           </div>
 
           {/* Horizontal Live executions ticker */}
-          <div style={{ marginTop: '48px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '32px' }}>
+          <div style={{ marginTop: '56px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '32px' }}>
             <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px', borderLeft: '3px solid var(--color-wire-gold)', paddingLeft: '12px' }}>
               Live Order Executions
             </h3>
@@ -137,7 +115,7 @@ export default function FeedPage() {
           </div>
 
           {/* Performance statistics grids */}
-          <div style={{ marginTop: '48px' }}>
+          <div style={{ marginTop: '56px' }}>
             <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px', borderLeft: '3px solid var(--color-wire-gold)', paddingLeft: '12px' }}>
               System Performance
             </h3>
@@ -162,7 +140,7 @@ export default function FeedPage() {
           </div>
 
           {/* Autonomous Loop pillars grid */}
-          <div style={{ marginTop: '48px' }}>
+          <div style={{ marginTop: '56px' }}>
             <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px', borderLeft: '3px solid var(--color-wire-gold)', paddingLeft: '12px' }}>
               Autonomous Loop Architecture
             </h3>
