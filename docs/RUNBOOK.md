@@ -1,6 +1,6 @@
-# 🚨 AlphaWire Incident Response Runbook
+# 🚨 Cinder Incident Response Runbook
 
-This runbook outlines standard operating procedures for resolving system incidents, API failures, or risk limit triggers affecting the AlphaWire autonomous trading system.
+This runbook outlines standard operating procedures for resolving system incidents, API failures, or risk limit triggers affecting the Cinder autonomous trading system.
 
 ---
 
@@ -13,7 +13,7 @@ Send the following message to your configured Telegram Bot chat:
 ```text
 /pause
 ```
-* **Expected Result:** The bot will respond with `"AlphaWire Trading Kill-Switch Triggered. Automated execution is now PAUSED."` All future pre-trade cycles will fail the `KILL_SWITCH_ACTIVE` risk gate.
+* **Expected Result:** The bot will respond with `"Cinder Trading Kill-Switch Triggered. Automated execution is now PAUSED."` All future pre-trade cycles will fail the `KILL_SWITCH_ACTIVE` risk gate.
 
 ### Method 2: Vercel Edge Config (No redeploy required)
 1. Go to your **Vercel Dashboard** -> **Edge Config** tab.

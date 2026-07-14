@@ -109,12 +109,14 @@ Crypto traders face three compounding problems:
 | Component | Technology | Rationale |
 |---|---|---|
 | Frontend | Next.js 14 (App Router) | SSR for SEO, API routes for backend logic |
-| Styling | Vanilla CSS + CSS Variables | Dark theme, no framework overhead |
+| Styling | Vanilla CSS + CSS Variables | Dark theme, obsidian clay-glass layout, no framework overhead |
+| Web3 Wallet | EIP-1193 / window.ethereum RPC | Connection to real wallets (MetaMask, Rabby) and fetching native balances |
 | Charts | Recharts + D3.js | Recharts for story charts, D3 for narrative bubble map |
 | Animation | Framer Motion | Smooth narrative transitions and live updates |
 | AI/LLM | OpenAI GPT-4o | Story generation + narrative classification |
-| Database | SQLite (via better-sqlite3) | Note that production runs on Turso(libSQL); Zero-config, perfect for hackathon; stores stories, narrative history, trades |
+| Database | Turso / libSQL (via @libsql/client) | SQL database client with local SQLite fallback for offline development |
 | Real-time | Server-Sent Events (SSE) | Live story updates on the news feed |
+| Testing | Vitest | Fast unit testing scaffolding with database and OpenAI mocks |
 | Trading | SoDEX REST API | Order placement, cancellation, account management |
 | Data | SoSoValue REST API | ETF flows, AI news feed, sector/index data |
 | Alerts | Telegram Bot API | Narrative shift + trade notifications |
@@ -153,7 +155,7 @@ Cinder uses **four** SoDEX API capabilities:
 ### Prerequisites
 
 - **Node.js** ≥ 18.0
-- **Python** ≥ 3.10 (for the AI narrative engine)
+- **Python** ≥ 3.10 (for the optional AI narrative engine)
 - **SoSoValue API Key** — [Register here](https://sosovalue.com) then apply via [Buildathon form](https://forms.gle/2nuJT2qNbUQsyyZy8)
 - **SoDEX Account + API Key** — [Register here](https://sodex.com) (testnet available without rank requirement)
 - **OpenAI API Key** — For story generation and narrative classification
@@ -168,7 +170,7 @@ cd Cinder
 # Install frontend dependencies
 npm install
 
-# Install Python dependencies (narrative engine)
+# Install Python dependencies (optional engine)
 pip install -r requirements.txt
 
 # Set up environment variables
@@ -210,11 +212,8 @@ AUTO_TRADE_ENABLED=false            # Set to true to enable auto-trading
 ### Running Locally
 
 ```bash
-# Start the development server (frontend + API routes)
+# Start the development server (frontend + API routes + Node scheduler)
 npm run dev
-
-# In a separate terminal, start the narrative engine
-python engine/main.py
 
 # The app will be available at http://localhost:3000
 ```
@@ -231,30 +230,69 @@ SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1
 AUTO_TRADE_ENABLED=true npm run dev
 ```
 
+### ⛽ EIP-4337 Paymaster & On-Chain Token Deploy Setup
+
+To deploy the CNDR token to a live testnet (such as Sepolia or Base Sepolia) and enable users to pay for execution gas fees in CNDR, you must provide:
+
+1. **JSON-RPC Node URL**: An HTTP endpoint for your target testnet (e.g. from Infura, Alchemy, or QuickNode) configured in `.env`.
+2. **Deployer Private Key**: An EVM private key holding a small amount of native gas tokens (e.g., Sepolia ETH) to sign and fund the contract deployment.
+3. **Paymaster Sponsor Configuration**:
+   - Integrate an Account Abstraction SDK (like **Biconomy**, **ZeroDev**, or **Pimlico**).
+   - Configure a Token Paymaster contract pre-funded with native ETH. The Paymaster deducts CNDR from the user's smart wallet and pays the native gas ETH to the network bundlers.
+   - Set up the Paymaster API keys in the Next.js API router.
+
+To deploy the CNDR ERC-20 contract using Hardhat, run:
+```bash
+npx hardhat run scripts/deploy.js --network sepolia
+```
+
+### 🧪 Running Unit Tests & CI
+
+Cinder includes a comprehensive unit testing suite using **Vitest** to verify the core trading logic, EIP-712 order validation parameters, and narrative shift detections. All database calls and OpenAI API completions are mocked.
+
+To run the test suite locally:
+```bash
+npm run test
+```
+
+A GitHub Actions workflow is configured under `.github/workflows/ci.yml` that automatically validates the codebase (lint + test execution) on every Pull Request.
+
 ---
 
 ## Project Structure
 
 ```
 cinder/
-├── README.md                       # This file
+├── README.md                       # Root README file
 ├── docs/
 │   ├── ARCHITECTURE.md             # Detailed technical architecture
-│   └── API_INTEGRATION.md          # SoSoValue + SoDEX API usage guide
-├── public/
-│   └── assets/                     # Static assets (logos, og-image)
+│   ├── API_INTEGRATION.md          # SoSoValue + SoDEX API usage guide
+│   ├── PRE_MAINNET_CHECKLIST.md    # Pre-mainnet security verification checklist
+│   ├── INCIDENT_RUNBOOK.md         # Incident runbook (Zero-Emoji compliant)
+│   └── RUNBOOK.md                  # Standard operational runbook
+├── contracts/
+│   └── CinderToken.sol             # CNDR ERC-20 Smart Contract
+├── migrations/
+│   └── 0001_init.sql               # SQLite database schema migration
+├── scripts/
+│   ├── db-init.js                  # Database schema seeding script
+│   ├── seed-more-stories.js        # Seed mock data for demo testing
+│   ├── test-circuit-breaker.mjs    # Test script for loss limits
+│   └── test-trade-engine.mjs       # Test execution module
 ├── src/
 │   ├── app/                        # Next.js App Router pages
 │   │   ├── layout.js               # Root layout (dark theme, fonts)
-│   │   ├── page.js                 # Home — Wire feed (public)
+│   │   ├── page.js                 # Home — Landing page (disconnected view)
+│   │   ├── feed/                   # Live wire feed directory
+│   │   │   └── page.js             # Feed — Connected/gated live wire view
 │   │   ├── story/[id]/page.js      # Individual story page
 │   │   ├── dashboard/page.js       # Narrative intelligence dashboard
 │   │   ├── portfolio/page.js       # SoDEX portfolio & trades
 │   │   └── api/                    # API routes
-│   │       ├── stories/route.js    # CRUD for generated stories
+│   │       ├── stories/route.js    # CRUD for generated stories (rate-limited)
 │   │       ├── narrative/route.js  # Narrative state & history
-│   │       ├── trade/route.js      # SoDEX trade execution
-│   │       └── webhook/route.js    # Telegram webhook handler
+│   │       ├── trade/route.js      # SoDEX trade execution (rate-limited)
+│   │       └── webhook/route.js    # Telegram webhook handler (signature verified)
 │   ├── components/
 │   │   ├── wire/                   # Wire/news UI components
 │   │   │   ├── StoryCard.js        # Individual story card
@@ -273,15 +311,20 @@ cinder/
 │   │   │   └── QuickTrade.js       # SoDEX trade widget
 │   │   └── shared/                 # Shared/layout components
 │   │       ├── Header.js           # Navigation header
+│   │       ├── Footer.js           # Shared footer component
 │   │       ├── LiveIndicator.js    # Pulsing "LIVE" badge
 │   │       └── ThemeProvider.js    # Dark/light theme
+│   ├── context/
+│   │   └── WalletContext.js        # Web3 wallet connection provider (EIP-1193)
 │   ├── lib/
 │   │   ├── sosovalue.js            # SoSoValue API client
 │   │   ├── sodex.js                # SoDEX API client (with EIP-712 signing)
 │   │   ├── openai.js               # LLM client for story gen + NLP
-│   │   ├── db.js                   # SQLite database helpers
+│   │   ├── db.js                   # libSQL/Turso database client helpers
+│   │   ├── rate-limiter.js         # Sliding window rate limiter helper
+│   │   ├── scheduler.js            # Node-cron scheduler for automated jobs
 │   │   └── telegram.js             # Telegram bot client
-│   ├── engine/                     # Narrative intelligence engine
+│   ├── engine/                     # Narrative intelligence engine (JS)
 │   │   ├── narrative.js            # Narrative classifier & temperature tracker
 │   │   ├── shift-detector.js       # Multi-signal shift detection
 │   │   └── trade-engine.js         # Risk-managed trade execution logic
@@ -290,7 +333,7 @@ cinder/
 │       ├── wire.css                # Wire/news page styles
 │       ├── dashboard.css           # Narrative dashboard styles
 │       └── portfolio.css           # Portfolio page styles
-├── engine/                         # Python narrative engine (alternative)
+├── engine/                         # Python narrative engine (alternative/skeleton)
 │   ├── main.py                     # Engine entry point + scheduler
 │   ├── narrative_classifier.py     # NLP narrative classification
 │   ├── shift_detector.py           # Regime shift detection algorithm
@@ -349,6 +392,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Built with ⚡ by [Your Name] for the SoSoValue × SoDEX Buildathon</strong><br/>
+  <strong>Built with ⚡ by turnless for the SoSoValue × SoDEX Buildathon</strong><br/>
   <em>"What if Bloomberg could trade its own stories?"</em>
 </p>

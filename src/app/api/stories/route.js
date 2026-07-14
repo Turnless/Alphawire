@@ -12,10 +12,10 @@ const MOCK_STORIES = [
     id: "breaking-001",
     type: "breaking",
     title: "REGIME SHIFT: AI/Tech Rotation dominant as DeFi inflows cool",
-    summary: "AlphaWire Shift Detector flagged a transition to NAR_04 (AI/Tech Rotation) with 88% confidence, triggering automated spot reallocation.",
+    summary: "Cinder Shift Detector flagged a transition to NAR_04 (AI/Tech Rotation) with 88% confidence, triggering automated spot reallocation.",
     body: `### Narrative Regime Shift Detected
 
-The AlphaWire narrative tracking system has triggered a major regime shift alert. Momentum in **Institutional Accumulation (NAR_01)** has leveled off, while **AI/Tech Rotation (NAR_04)** has surged, driven by massive developer activity and GPU compute-related tokens.
+The Cinder narrative tracking system has triggered a major regime shift alert. Momentum in **Institutional Accumulation (NAR_01)** has leveled off, while **AI/Tech Rotation (NAR_04)** has surged, driven by massive developer activity and GPU compute-related tokens.
 
 #### Supporting Signals & Evidence
 
@@ -27,7 +27,7 @@ The AlphaWire narrative tracking system has triggered a major regime shift alert
 
 #### Automated Execution Log
 
-Following the regime shift confirmation, the AlphaWire trade execution system placed rebalancing orders:
+Following the regime shift confirmation, the Cinder trade execution system placed rebalancing orders:
 
 - **Action:** Reallocated 15% of spot portfolio from BTC to native compute protocols.
 - **Order Details:** Market buy order executed on testnet.

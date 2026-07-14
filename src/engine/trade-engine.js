@@ -1,5 +1,5 @@
 /**
- * AlphaWire Trade Execution Engine.
+ * Cinder Trade Execution Engine.
  * Fully implemented risk checks, portfolio sizing, order execution, and stop-loss monitoring.
  */
 

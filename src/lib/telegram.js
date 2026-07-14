@@ -76,7 +76,7 @@ export async function sendNarrativeAlert(shiftData) {
     }
   }
 
-  const text = `🚨 <b>[AlphaWire Alert] Narrative Regime Shift Detected</b> 🚨\n\n` +
+  const text = `🚨 <b>[Cinder Alert] Narrative Regime Shift Detected</b> 🚨\n\n` +
     `<b>From:</b> ${fromName} (${shiftData.from_narrative || 'N/A'})\n` +
     `<b>To:</b> ${toName} (${shiftData.to_narrative || 'N/A'})\n` +
     `<b>Confidence:</b> ${confidence}%\n\n` +
@@ -115,7 +115,7 @@ export async function sendDailyDigest(portfolioSummary) {
     positionsStr = '<i>No active positions.</i>';
   }
 
-  const text = `📊 <b>[AlphaWire Daily Digest] Portfolio & Risk Status</b> 📊\n\n` +
+  const text = `📊 <b>[Cinder Daily Digest] Portfolio & Risk Status</b> 📊\n\n` +
     `<b>Portfolio Summary:</b>\n` +
     `• Total Balance: <code>$${balance}</code>\n` +
     `• Daily Performance: <code>${pnl}</code>\n` +

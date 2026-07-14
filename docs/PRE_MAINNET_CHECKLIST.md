@@ -1,6 +1,6 @@
 # Pre-Mainnet Security Checklist
 
-This document details the critical verification and audit procedures required before deploying the AlphaWire autonomous trading system to the production mainnet environment.
+This document details the critical verification and audit procedures required before deploying the Cinder autonomous trading system to the production mainnet environment.
 
 ---
 

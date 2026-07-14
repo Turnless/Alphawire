@@ -277,24 +277,36 @@ A GitHub Actions workflow is configured under `.github/workflows/ci.yml` that au
 
 ```
 cinder/
-├── README.md                       # This file
+├── README.md                       # Root README file
 ├── docs/
 │   ├── ARCHITECTURE.md             # Detailed technical architecture
-│   └── API_INTEGRATION.md          # SoSoValue + SoDEX API usage guide
-├── public/
-│   └── assets/                     # Static assets (logos, og-image)
+│   ├── API_INTEGRATION.md          # SoSoValue + SoDEX API usage guide
+│   ├── PRE_MAINNET_CHECKLIST.md    # Pre-mainnet security verification checklist
+│   ├── INCIDENT_RUNBOOK.md         # Incident runbook (Zero-Emoji compliant)
+│   └── RUNBOOK.md                  # Standard operational runbook
+├── contracts/
+│   └── CinderToken.sol             # CNDR ERC-20 Smart Contract
+├── migrations/
+│   └── 0001_init.sql               # SQLite database schema migration
+├── scripts/
+│   ├── db-init.js                  # Database schema seeding script
+│   ├── seed-more-stories.js        # Seed mock data for demo testing
+│   ├── test-circuit-breaker.mjs    # Test script for loss limits
+│   └── test-trade-engine.mjs       # Test execution module
 ├── src/
 │   ├── app/                        # Next.js App Router pages
 │   │   ├── layout.js               # Root layout (dark theme, fonts)
-│   │   ├── page.js                 # Home — Wire feed (public)
+│   │   ├── page.js                 # Home — Landing page (disconnected view)
+│   │   ├── feed/                   # Live wire feed directory
+│   │   │   └── page.js             # Feed — Connected/gated live wire view
 │   │   ├── story/[id]/page.js      # Individual story page
 │   │   ├── dashboard/page.js       # Narrative intelligence dashboard
 │   │   ├── portfolio/page.js       # SoDEX portfolio & trades
 │   │   └── api/                    # API routes
-│   │       ├── stories/route.js    # CRUD for generated stories
+│   │       ├── stories/route.js    # CRUD for generated stories (rate-limited)
 │   │       ├── narrative/route.js  # Narrative state & history
-│   │       ├── trade/route.js      # SoDEX trade execution
-│   │       └── webhook/route.js    # Telegram webhook handler
+│   │       ├── trade/route.js      # SoDEX trade execution (rate-limited)
+│   │       └── webhook/route.js    # Telegram webhook handler (signature verified)
 │   ├── components/
 │   │   ├── wire/                   # Wire/news UI components
 │   │   │   ├── StoryCard.js        # Individual story card
@@ -313,15 +325,20 @@ cinder/
 │   │   │   └── QuickTrade.js       # SoDEX trade widget
 │   │   └── shared/                 # Shared/layout components
 │   │       ├── Header.js           # Navigation header
+│   │       ├── Footer.js           # Shared footer component
 │   │       ├── LiveIndicator.js    # Pulsing "LIVE" badge
 │   │       └── ThemeProvider.js    # Dark/light theme
+│   ├── context/
+│   │   └── WalletContext.js        # Web3 wallet connection provider (EIP-1193)
 │   ├── lib/
 │   │   ├── sosovalue.js            # SoSoValue API client
 │   │   ├── sodex.js                # SoDEX API client (with EIP-712 signing)
 │   │   ├── openai.js               # LLM client for story gen + NLP
-│   │   ├── db.js                   # SQLite database helpers
+│   │   ├── db.js                   # libSQL/Turso database client helpers
+│   │   ├── rate-limiter.js         # Sliding window rate limiter helper
+│   │   ├── scheduler.js            # Node-cron scheduler for automated jobs
 │   │   └── telegram.js             # Telegram bot client
-│   ├── engine/                     # Narrative intelligence engine
+│   ├── engine/                     # Narrative intelligence engine (JS)
 │   │   ├── narrative.js            # Narrative classifier & temperature tracker
 │   │   ├── shift-detector.js       # Multi-signal shift detection
 │   │   └── trade-engine.js         # Risk-managed trade execution logic
@@ -330,7 +347,7 @@ cinder/
 │       ├── wire.css                # Wire/news page styles
 │       ├── dashboard.css           # Narrative dashboard styles
 │       └── portfolio.css           # Portfolio page styles
-├── engine/                         # Python narrative engine (alternative)
+├── engine/                         # Python narrative engine (alternative/skeleton)
 │   ├── main.py                     # Engine entry point + scheduler
 │   ├── narrative_classifier.py     # NLP narrative classification
 │   ├── shift_detector.py           # Regime shift detection algorithm
@@ -389,6 +406,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Built with by turnless for the SoSoValue × SoDEX Buildathon</strong><br/>
+  <strong>Built with ⚡ by turnless for the SoSoValue × SoDEX Buildathon</strong><br/>
   <em>"What if Bloomberg could trade its own stories?"</em>
 </p>

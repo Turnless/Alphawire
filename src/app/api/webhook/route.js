@@ -54,12 +54,12 @@ export async function POST(request) {
       switch (command) {
         case '/pause': {
           global.tradingPaused = true;
-          await sendMessage(chatId, '🚨 <b>AlphaWire Trading Kill-Switch Triggered</b>\nAutomated execution is now <b>PAUSED</b>.');
+          await sendMessage(chatId, '🚨 <b>Cinder Trading Kill-Switch Triggered</b>\nAutomated execution is now <b>PAUSED</b>.');
           break;
         }
         case '/resume': {
           global.tradingPaused = false;
-          await sendMessage(chatId, '▶️ <b>AlphaWire Trading Resumed</b>\nAutomated execution is now <b>ACTIVE</b>.');
+          await sendMessage(chatId, '▶️ <b>Cinder Trading Resumed</b>\nAutomated execution is now <b>ACTIVE</b>.');
           break;
         }
         case '/status': {
@@ -77,7 +77,7 @@ export async function POST(request) {
             } catch (e) {}
           }
 
-          const statusMsg = `ℹ️ <b>AlphaWire System Status</b>\n\n` +
+          const statusMsg = `ℹ️ <b>Cinder System Status</b>\n\n` +
             `• <b>Execution State:</b> ${isPaused ? '🛑 PAUSED (Kill-Switch Active)' : '✅ RUNNING'}\n` +
             `• <b>Auto-Trading Switch:</b> ${autoTradeEnabled ? 'ON' : 'OFF'}\n` +
             `• <b>Available Balance:</b> <code>$${balance}</code>\n` +
@@ -87,7 +87,7 @@ export async function POST(request) {
         }
         case '/help':
         default: {
-          const helpMsg = `📖 <b>AlphaWire Bot Command Reference</b>\n\n` +
+          const helpMsg = `📖 <b>Cinder Bot Command Reference</b>\n\n` +
             `• /pause - Triggers the emergency kill-switch to pause trading\n` +
             `• /resume - Deactivates the kill-switch and resumes execution\n` +
             `• /status - Fetch real-time system performance and safety status\n` +

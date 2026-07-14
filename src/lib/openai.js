@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 /**
- * OpenAI API Client for AlphaWire.
+ * OpenAI API Client for Cinder.
  */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
@@ -29,7 +29,7 @@ export async function generateMarketPulse(data) {
     headlinesStr = data.headlines;
   }
 
-  const prompt = `You are AlphaWire, an AI financial wire service. Write a Market Pulse report.
+  const prompt = `You are Cinder, an AI financial wire service. Write a Market Pulse report.
 
 DATA PROVIDED:
 - BTC ETF Net Flow: ${btcFlow}
@@ -73,7 +73,7 @@ export async function generateDailyDeepDive(data) {
   const newsSentiment = data.newsSentiment || data.news_sentiment || 'N/A';
   const narrativeState = data.narrativeState || data.narrative_state || 'N/A';
 
-  const prompt = `You are AlphaWire, an AI financial wire service. Write an in-depth Daily Deep Dive market analysis.
+  const prompt = `You are Cinder, an AI financial wire service. Write an in-depth Daily Deep Dive market analysis.
 
 DATA PROVIDED:
 - 7-Day ETF Flow Trend: ${typeof etfFlowTrend === 'object' ? JSON.stringify(etfFlowTrend) : etfFlowTrend}
@@ -135,7 +135,7 @@ export async function createBreakingStory({ shiftData, tradeData, publishedAt })
     signalsStr = signals;
   }
 
-  const prompt = `You are AlphaWire, an AI financial wire service. Write a Breaking News Alert about a market narrative regime change.
+  const prompt = `You are Cinder, an AI financial wire service. Write a Breaking News Alert about a market narrative regime change.
 
 SHIFT DETAILS:
 - Previous Narrative: ${fromNarrative}

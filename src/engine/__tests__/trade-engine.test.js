@@ -51,7 +51,7 @@ import {
   executeStopLossMonitoring
 } from '../trade-engine.js';
 
-describe('AlphaWire Trade Execution Engine', () => {
+describe('Cinder Trade Execution Engine', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {

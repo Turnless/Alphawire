@@ -1,4 +1,4 @@
-# Incident Runbook for AlphaWire Trading Engine
+# Incident Runbook for Cinder Trading Engine
 
 This document provides step-by-step procedures for handling critical system incidents, API failures, risk limit triggers, and emergency operations.
 
@@ -6,7 +6,7 @@ This document provides step-by-step procedures for handling critical system inci
 
 ## Operational Standards and Styling Rules
 
-To maintain visual and technical consistency across all AlphaWire user interfaces and document logs:
+To maintain visual and technical consistency across all Cinder user interfaces and document logs:
 1. **No Emojis:** Do not include any emojis in system logs, user-facing wire feeds, source code comments, or configuration files.
 2. **Dark Mode Only:** All console interfaces, dashboards, and reporting frontends must use dark mode styling exclusively. 
 3. **Typography Specifications:**
@@ -147,11 +147,11 @@ This updates the config value globally in less than 50ms, halting all future tra
 
 ### Step 4.2: Telegram Bot '/pause' Command
 If you are away from your dashboard, issue the pause command via Telegram:
-1. Open the Telegram chat with your AlphaWire Bot.
+1. Open the Telegram chat with your Cinder Bot.
 2. Send the command:
    ```text
    /pause
    ```
 3. Verify that the bot replies with confirmation:
-   `"AlphaWire Trading Kill-Switch Triggered. Automated execution is now PAUSED."`
+   "Cinder Trading Kill-Switch Triggered. Automated execution is now PAUSED."
 4. Use the `/status` command to verify that all subsequent checks report `KILL_SWITCH_ACTIVE`.

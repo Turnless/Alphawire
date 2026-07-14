@@ -1,6 +1,6 @@
-# AlphaWire — Technical Architecture
+# Cinder — Technical Architecture
 
-> This document describes the detailed technical architecture of AlphaWire, including system design, data flows, component specifications, and infrastructure decisions.
+> This document describes the detailed technical architecture of Cinder, including system design, data flows, component specifications, and infrastructure decisions.
 
 ---
 
@@ -27,7 +27,7 @@ AlphaWire is a three-layer system that transforms raw financial data into publis
 
 ```
                     ┌─────────────────────────────────────────────────────────┐
-                    │                  ALPHAWIRE SYSTEM                       │
+                    │                  CINDER SYSTEM                          │
                     │                                                         │
                     │  ┌─────────────────────────────────────────────────┐    │
                     │  │              ORCHESTRATION LAYER                │    │
@@ -164,7 +164,7 @@ Output:     ~300 words + ETF flow table + sector sparklines
 
 **LLM Prompt Template:**
 ```
-You are AlphaWire, an AI financial wire service. Write a Market Pulse report.
+You are Cinder, an AI financial wire service. Write a Market Pulse report.
 
 DATA PROVIDED:
 - BTC ETF Net Flow: {btc_flow}
@@ -834,4 +834,4 @@ python engine/main.py # Narrative engine (optional, can be JS-only)
 
 ---
 
-*Last updated: July 2026 — AlphaWire v1.0 (Buildathon Edition)*
+*Last updated: July 2026 — Cinder v1.0 (Buildathon Edition)*

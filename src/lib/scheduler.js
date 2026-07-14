@@ -3,7 +3,7 @@ import { getETFFlows, getAINewsFeed, getSectorPerformance } from './sosovalue.js
 import { updateNarrativeTemperatures } from '../engine/narrative.js';
 import { checkMarketAndTrade, executeStopLossMonitoring } from '../engine/trade-engine.js';
 
-console.log('⏰ Initializing AlphaWire Scheduler...');
+console.log('⏰ Initializing Cinder Scheduler...');
 
 // 1. Fetch AI news feed every hour (0 * * * *)
 // This runs the hourly intelligence cycle: fetch-news -> update-narratives -> check-shifts -> checkMarketAndTrade
