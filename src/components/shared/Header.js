@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import LiveIndicator from './LiveIndicator';
 import { useWallet } from '../../context/WalletContext';
 
@@ -19,6 +20,7 @@ export default function Header() {
   } = useWallet();
   
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const shortAddress = walletAddress 
@@ -59,6 +61,7 @@ export default function Header() {
         </div>
         
         <div className="nav-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+          {/* Desktop Nav Links (hidden on mobile via CSS) */}
           {isConnected && (
             <ul className="nav-links">
               <li>
@@ -79,6 +82,7 @@ export default function Header() {
             </ul>
           )}
           
+          {/* Wallet pill */}
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             {isConnected && (
               <div 
@@ -192,8 +196,134 @@ export default function Header() {
               </div>
             )}
           </div>
+
+          {/* Mobile Hamburger toggle button (visible on mobile via CSS) */}
+          {isConnected && (
+            <button 
+              className="mobile-nav-toggle" 
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open Navigation Menu"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+          )}
         </div>
       </nav>
+
+      {/* Slide-out Mobile Navigation Drawer */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            {/* Drawer Backdrop Overlay */}
+            <motion.div 
+              className="mobile-sidebar-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            
+            {/* Drawer Sidebar Panel */}
+            <motion.div 
+              className="mobile-sidebar-drawer"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+            >
+              <div>
+                {/* Header Section */}
+                <div className="mobile-sidebar-header">
+                  <span className="logo-alpha" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-linen)' }}>
+                    Cin<span className="logo-wire" style={{ color: 'var(--color-wire-gold)' }}>der</span>
+                  </span>
+                  <button 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    style={{ 
+                      color: 'var(--color-sage)', 
+                      fontSize: '1.15rem', 
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: 'none',
+                      padding: '4px' 
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                {/* Sidebar Navigation Links */}
+                <div className="mobile-sidebar-links">
+                  <Link 
+                    href="/feed" 
+                    className={`mobile-sidebar-link ${pathname === '/feed' ? 'active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Feed
+                  </Link>
+                  <Link 
+                    href="/dashboard" 
+                    className={`mobile-sidebar-link ${pathname === '/dashboard' ? 'active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link 
+                    href="/portfolio" 
+                    className={`mobile-sidebar-link ${pathname === '/portfolio' ? 'active' : ''}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Portfolio
+                  </Link>
+                </div>
+              </div>
+              
+              {/* Account details & Disconnect controls */}
+              <div>
+                {walletAddress && (
+                  <div style={{ marginBottom: '20px', borderTop: '1px solid rgba(236,223,204,0.08)', paddingTop: '16px' }}>
+                    <div style={{ fontSize: '0.62rem', color: 'var(--color-sage)', textTransform: 'uppercase', marginBottom: '4px', fontWeight: 600, letterSpacing: '0.05em' }}>Connected Wallet</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-linen)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '6px' }}>
+                      {walletAddress}
+                    </div>
+                    {ethBalance !== null && (
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-sage)', fontFamily: 'var(--font-mono)' }}>
+                        Balance: <span style={{ color: 'var(--color-linen)' }}>{ethBalance} ETH</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <button 
+                  onClick={() => {
+                    disconnectWallet();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 0',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.06)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    color: 'var(--color-shift-red)',
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 600,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  Disconnect Wallet
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
