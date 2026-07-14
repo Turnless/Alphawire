@@ -45,45 +45,21 @@ export default function FeedPage() {
             </h1>
           </motion.div>
           
-          <div className="feed-layout" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
-            {/* Desktop Two-Column Layout (Configured by globals.css grid breakpoints) */}
-            <div className="feed-layout-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: '32px' }}>
-              
-              {/* Left Column: Live Newsroom Wire Feed */}
-              <div className="feed-column">
-                <StoryFeed />
-              </div>
-
-              {/* Right Column: Market Mood Sidebar */}
-              <div className="sidebar-column">
-                <div 
-                  className="clay-glass" 
-                  style={{ 
-                    padding: '24px', 
-                    borderRadius: '16px',
-                    position: 'sticky',
-                    top: '96px',
-                    border: '1px solid var(--glass-border)',
-                    background: 'var(--glass-surface)',
-                    backdropFilter: 'blur(16px)'
-                  }}
-                >
-                  <h3 
-                    className="section-heading" 
-                    style={{ 
-                      fontSize: '1.15rem', 
-                      marginBottom: '16px',
-                      borderLeft: '3px solid var(--color-wire-gold)',
-                      paddingLeft: '12px'
-                    }}
-                  >
-                    Current Market Mood
-                  </h3>
+          <div className="feed-layout" style={{ marginTop: '24px' }}>
+            <StoryFeed 
+              temperatureWidget={
+                <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', height: '100%' }}>
+                  <div className="edge-widget-header" style={{ borderBottom: '1px solid rgba(236, 223, 204, 0.08)', paddingBottom: '8px', marginBottom: '4px' }}>
+                    <span className="edge-widget-title">
+                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-wire-gold)', marginRight: '6px' }} />
+                      Market Temperature
+                    </span>
+                    <span style={{ fontSize: '0.62rem', color: 'var(--color-sage)' }}>Gauge</span>
+                  </div>
                   <TemperatureGauge />
                 </div>
-              </div>
-
-            </div>
+              } 
+            />
           </div>
 
           {/* Horizontal Live executions ticker */}

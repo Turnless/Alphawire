@@ -5,8 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import StoryCard from './StoryCard';
 import { useWallet } from '../../context/WalletContext';
 
-const spring = { type: 'spring', stiffness: 280, damping: 24 };
-
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
@@ -18,21 +16,29 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 32 },
-  show: { opacity: 1, y: 0, transition: spring }
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 25 } }
 };
 
-export default function StoryFeed() {
+// Mock Markets data to feed the Edge MSN index widget
+const MARKET_INDEXES = [
+  { name: 'Cinder Protocol Index', code: 'CNDR/USDC', price: 1.24, change: 5.42, up: true, sparkline: [1.1, 1.15, 1.12, 1.2, 1.22, 1.24] },
+  { name: 'Bitcoin Sovereign Index', code: 'BTC/USDC', price: 64250.00, change: 1.85, up: true, sparkline: [63100, 63400, 62900, 63800, 64100, 64250] },
+  { name: 'Ethereum Liquid Yield', code: 'ETH/USDC', price: 3421.50, change: -2.14, up: false, sparkline: [3520, 3490, 3460, 3480, 3430, 3421.5] },
+  { name: 'Solana High Speed Index', code: 'SOL/USDC', price: 142.80, change: 0.72, up: true, sparkline: [141, 140.5, 143, 142, 141.8, 142.8] }
+];
+
+export default function StoryFeed({ temperatureWidget }) {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('Discover');
   
-  const { isConnected, connectWallet } = useWallet();
+  const { isConnected } = useWallet();
 
-  // Fetch stories on load and page change
   const fetchStories = async (pageNum, append = false) => {
     try {
       if (pageNum === 1) {
@@ -42,7 +48,7 @@ export default function StoryFeed() {
       }
       setError(null);
 
-      const limit = 10;
+      const limit = 12;
       const offset = (pageNum - 1) * limit;
 
       const res = await fetch(`/api/stories?offset=${offset}&limit=${limit}`);
@@ -113,12 +119,8 @@ export default function StoryFeed() {
     connectSSE();
 
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
+      if (eventSource) eventSource.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
   }, []);
 
@@ -129,9 +131,9 @@ export default function StoryFeed() {
     fetchStories(nextPage, true);
   };
 
-  // Premium Shimmer Loading Skeletons
+  // MSN Shimmer Skeletons
   const renderSkeletons = () => (
-    <div className="story-feed">
+    <div className="edge-portal-grid" style={{ marginTop: '20px' }}>
       {[1, 2, 3, 4].map((n) => (
         <div key={n} className="story-card-skeleton">
           <div className="skeleton-header">
@@ -149,7 +151,7 @@ export default function StoryFeed() {
   if (loading) {
     return (
       <div className="story-feed-wrapper">
-        <h3 className="feed-title">Loading stories...</h3>
+        <h3 className="feed-title" style={{ fontFamily: 'var(--font-body)', fontSize: '1rem', color: 'var(--color-sage)' }}>Connecting to Cinder News Wire...</h3>
         {renderSkeletons()}
       </div>
     );
@@ -184,77 +186,177 @@ export default function StoryFeed() {
       return new Date(b.published_at) - new Date(a.published_at);
     });
 
-  const featuredStory = sortedStories[0];
-  const trendingStories = sortedStories.slice(1, 3);
-  const remainingStories = sortedStories.slice(3);
+  // Filter stories based on active tab category
+  const getFilteredStories = () => {
+    if (activeTab === 'Discover') return sortedStories;
+    if (activeTab === 'Breaking') return sortedStories.filter(s => s.type === 'breaking');
+    if (activeTab === 'Deep Dives') return sortedStories.filter(s => s.type === 'deep_dive');
+    if (activeTab === 'Market Pulse') return sortedStories.filter(s => s.type === 'pulse');
+    return sortedStories;
+  };
+
+  const filteredList = getFilteredStories();
 
   return (
-    <div className="story-feed-wrapper">
-      <div className="feed-header-row">
-        <h2 className="feed-title" style={{ visibility: 'hidden', height: 0, margin: 0, padding: 0 }}>Latest Stories</h2>
-        <span className="feed-count">{stories.length} intelligence reports online</span>
+    <div className="story-feed-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      
+      {/* MSN-style news portal tab bar */}
+      <div className="edge-portal-nav">
+        <ul className="edge-portal-tabs">
+          {['Discover', 'Breaking', 'Deep Dives', 'Market Pulse'].map((tab) => (
+            <li 
+              key={tab} 
+              className={`edge-portal-tab ${activeTab === tab ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </li>
+          ))}
+        </ul>
+        <button className="edge-portal-personalize">Personalize Feed</button>
       </div>
 
       <AnimatePresence mode="popLayout">
-        <div className="edge-news-portal">
+        <motion.div 
+          className="edge-portal-grid"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          layout
+        >
+          {/* Custom Portal Grid Assembly mapping the MSN screenshots layout */}
           
-          {/* Top Feature Grid: Main Hero (Left) & Trending Stack (Right) */}
-          <div className="edge-feature-grid">
-            {/* Left Hero Card */}
-            {featuredStory && (
-              <motion.div
-                key={featuredStory.id}
-                variants={itemVariants}
-                initial="hidden"
-                animate="show"
-                layout
-              >
-                <div style={{ height: '100%' }}>
-                  <StoryCard story={featuredStory} />
-                </div>
-              </motion.div>
-            )}
-
-            {/* Right Trending Stack */}
-            {trendingStories.length > 0 && (
-              <div className="edge-trending-column">
-                {trendingStories.map((story) => (
-                  <motion.div
-                    key={story.id}
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="show"
-                    layout
-                  >
-                    <StoryCard story={story} />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sub-grid of remaining news stories below the fold */}
-          {remainingStories.length > 0 && (
-            <motion.div 
-              className="edge-sub-grid"
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-              layout
-            >
-              {remainingStories.map((story) => (
-                <motion.div
-                  key={story.id}
-                  variants={itemVariants}
-                  layout
-                >
-                  <StoryCard story={story} />
-                </motion.div>
-              ))}
+          {/* Item 1: Left Featured Card (Wide, spans 2 columns) */}
+          {filteredList[0] && (
+            <motion.div key={filteredList[0].id} className="edge-card-span-2" variants={itemVariants} layout>
+              <StoryCard story={filteredList[0]} isWide={true} />
             </motion.div>
           )}
 
-        </div>
+          {/* Item 2: Standard Card (1 column) */}
+          {filteredList[1] && (
+            <motion.div key={filteredList[1].id} variants={itemVariants} layout>
+              <StoryCard story={filteredList[1]} />
+            </motion.div>
+          )}
+
+          {/* Item 3: Markets Indexes Widget (1 column) */}
+          <motion.div key="markets-widget" className="edge-card-base clay-glass" variants={itemVariants} layout>
+            <div className="edge-widget-markets">
+              <div className="edge-widget-header">
+                <span className="edge-widget-title">
+                  <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-pulse-green)', marginRight: '4px' }} />
+                  Live Indices
+                </span>
+                <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)' }}>SoDEX</span>
+              </div>
+              
+              {MARKET_INDEXES.map((idx) => (
+                <div key={idx.code} className="edge-market-row">
+                  <div>
+                    <span className="edge-market-name">{idx.code}</span>
+                    <span className="edge-market-code">{idx.name.split(' ')[0]}</span>
+                  </div>
+                  
+                  {/* SVG Sparkline */}
+                  <svg width="45" height="18" style={{ overflow: 'visible' }}>
+                    <path 
+                      d={`M ${idx.sparkline.map((val, i) => `${(i * 9)} ${18 - ((val - Math.min(...idx.sparkline)) / (Math.max(...idx.sparkline) - Math.min(...idx.sparkline) || 1)) * 14}`).join(' L ')}`} 
+                      fill="none" 
+                      stroke={idx.up ? 'var(--color-pulse-green)' : 'var(--color-shift-red)'} 
+                      strokeWidth="1.5" 
+                      strokeLinecap="round"
+                    />
+                  </svg>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <span className="edge-market-price" style={{ display: 'block', color: 'var(--color-linen)' }}>
+                      ${idx.price >= 1000 ? idx.price.toLocaleString() : idx.price.toFixed(2)}
+                    </span>
+                    <span 
+                      className="edge-market-change" 
+                      style={{ 
+                        color: idx.up ? 'var(--color-pulse-green)' : 'var(--color-shift-red)',
+                        background: idx.up ? 'rgba(74, 222, 128, 0.05)' : 'rgba(239, 68, 68, 0.05)' 
+                      }}
+                    >
+                      {idx.up ? '+' : ''}{idx.change}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Item 4: Standard Card (1 column) */}
+          {filteredList[2] && (
+            <motion.div key={filteredList[2].id} variants={itemVariants} layout>
+              <StoryCard story={filteredList[2]} />
+            </motion.div>
+          )}
+
+          {/* Item 5: Standard Card (1 column) */}
+          {filteredList[3] && (
+            <motion.div key={filteredList[3].id} variants={itemVariants} layout>
+              <StoryCard story={filteredList[3]} />
+            </motion.div>
+          )}
+
+          {/* Item 6: Weather-styled Market Temperature Gauge Widget (Wide, spans 2 columns) */}
+          {temperatureWidget && (
+            <motion.div key="weather-widget" className="edge-card-span-2" variants={itemVariants} layout>
+              <div className="edge-card-base clay-glass" style={{ height: '100%' }}>
+                <div className="edge-widget-weather">
+                  {temperatureWidget}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Item 7: Second Wide Card (Wide, spans 2 columns) */}
+          {filteredList[4] && (
+            <motion.div key={filteredList[4].id} className="edge-card-span-2" variants={itemVariants} layout>
+              <StoryCard story={filteredList[4]} isWide={true} />
+            </motion.div>
+          )}
+
+          {/* Item 8: Standard Card (1 column) */}
+          {filteredList[5] && (
+            <motion.div key={filteredList[5].id} variants={itemVariants} layout>
+              <StoryCard story={filteredList[5]} />
+            </motion.div>
+          )}
+
+          {/* Item 9: Headlines Bullet Stack Widget (1 column) */}
+          {filteredList.length > 6 && (
+            <motion.div key="headlines-widget" className="edge-card-base clay-glass" variants={itemVariants} layout>
+              <div className="edge-widget-headlines">
+                <div className="edge-widget-header">
+                  <span className="edge-widget-title">
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-wire-gold)', marginRight: '4px' }} />
+                    Top Headlines
+                  </span>
+                  <span style={{ fontSize: '0.62rem', color: 'var(--color-sage)' }}>Wire</span>
+                </div>
+                
+                {filteredList.slice(6, 9).map((story) => (
+                  <div key={story.id} className="edge-headline-item">
+                    <span className="edge-headline-source">{story.type === 'breaking' ? 'Breaking' : 'Intelligence'}</span>
+                    <span className="edge-headline-title">{story.title}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Subsequent items rendered as standard cards */}
+          {filteredList.slice(9).map((story) => (
+            <motion.div key={story.id} variants={itemVariants} layout>
+              <StoryCard story={story} />
+            </motion.div>
+          ))}
+
+        </motion.div>
       </AnimatePresence>
 
       {hasMore && (
