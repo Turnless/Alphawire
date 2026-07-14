@@ -735,7 +735,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-lg);
-  margin-top: var(--space-sm);
+  margin-top: var(--space-2xl);
 }
 
 @media (min-width: 640px) {
