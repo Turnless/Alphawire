@@ -194,6 +194,13 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
+    if (process.env.NODE_ENV === 'development' && !global.schedulerInitialized) {
+      global.schedulerInitialized = true;
+      import('../../../lib/scheduler.js')
+        .then(() => console.log('✅ Local Cinder Scheduler started successfully in-process'))
+        .catch(err => console.error('❌ Failed to start local scheduler:', err));
+    }
+
     await ensureDbData();
 
     const { searchParams } = new URL(request.url);
