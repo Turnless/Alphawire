@@ -146,93 +146,27 @@ export default function HomePage() {
         
         {/* Dynamic Connected vs Gated Landing Layout */}
         {isConnected ? (
-          <div style={{ transition: 'all 0.5s ease' }}>
-            <div className="feed-layout">
-              <div className="feed-column">
-                <StoryFeed />
-              </div>
-              <div className="sidebar-column">
-                <div className="clay-glass" style={{ padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)' }}>
-                  <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: 'var(--space-md)' }}>Current Market Mood</h3>
-                  <TemperatureGauge />
-                </div>
-              </div>
-            </div>
-
-            {/* Live executions list */}
-            <div style={{ marginTop: '48px', borderTop: '1px solid rgba(236,223,204,0.06)', paddingTop: '32px' }}>
-              <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>Live Order Executions</h3>
-              <div style={{ width: '100%', overflow: 'hidden', background: 'rgba(60,61,55,0.2)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '14px 0', position: 'relative' }}>
-                <div className="ticker-scroll" style={{ display: 'flex', gap: '40px', width: 'max-content' }}>
-                  <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
-                    <span style={{ color: 'var(--color-shift-red)' }}>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
-                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY WBTC/USDC • $62,450.00 • 0.15 WBTC • 15m ago</span>
-                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.22 • 8,900 CNDR • 28m ago</span>
-                    <span style={{ color: 'var(--color-shift-red)' }}>● SELL SOL/USDC • $142.80 • 45 SOL • 34m ago</span>
-                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY DeFi Renaissance • EXECUTION SUCCESS • 42m ago</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '40px', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', whiteSpace: 'nowrap' }} aria-hidden="true">
-                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.24 • 12,450 CNDR • 2m ago</span>
-                    <span style={{ color: 'var(--color-shift-red)' }}>● SELL ETH/USDC • $3,421.50 • 2.4 ETH • 8m ago</span>
-                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY WBTC/USDC • $62,450.00 • 0.15 WBTC • 15m ago</span>
-                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY CNDR/USDC • $1.22 • 8,900 CNDR • 28m ago</span>
-                    <span style={{ color: 'var(--color-shift-red)' }}>● SELL SOL/USDC • $142.80 • 45 SOL • 34m ago</span>
-                    <span style={{ color: 'var(--color-pulse-green)' }}>● BUY DeFi Renaissance • EXECUTION SUCCESS • 42m ago</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Performance Stats */}
-            <div style={{ marginTop: '48px' }}>
-              <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>System Performance</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Autonomous Win Rate</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-pulse-green)' }}>74.8%</div>
-                </div>
-                <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total Volume Executed</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-linen)' }}>$1,248,390</div>
-                </div>
-                <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Average Execution Speed</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-wire-gold)' }}>240ms</div>
-                </div>
-                <div className="clay-glass" style={{ padding: '20px', borderRadius: '16px' }}>
-                  <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.72rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Average Order Slippage</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-data-blue)' }}>&lt; 0.08%</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Cool Feature: The Autonomous Loop */}
-            <div style={{ marginTop: '48px' }}>
-              <h3 className="section-heading" style={{ fontSize: '1.15rem', marginBottom: '20px' }}>Autonomous Loop Architecture</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                <div className="clay-glass" style={{ padding: '24px', borderRadius: '16px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-wire-gold)', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 700 }}>Pillar 01</div>
-                  <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--color-linen)', marginBottom: '8px', fontWeight: 600 }}>Regime Identification</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-sage)', lineHeight: '1.6' }}>
-                    Analyzes live narrative flows, sentiment shift alerts, and institutional momentum indexes to map current market regimes.
-                  </p>
-                </div>
-                <div className="clay-glass" style={{ padding: '24px', borderRadius: '16px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-wire-gold)', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 700 }}>Pillar 02</div>
-                  <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--color-linen)', marginBottom: '8px', fontWeight: 600 }}>SoDEX Contract Routing</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-sage)', lineHeight: '1.6' }}>
-                    Signs and dispatches EIP-712 order messages directly to the SoDEX decentralized exchange router for sub-second execution.
-                  </p>
-                </div>
-                <div className="clay-glass" style={{ padding: '24px', borderRadius: '16px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-wire-gold)', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 700 }}>Pillar 03</div>
-                  <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: 'var(--color-linen)', marginBottom: '8px', fontWeight: 600 }}>On-Chain Risk Controls</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-sage)', lineHeight: '1.6' }}>
-                    Enforces automated daily loss thresholds, execution cooldown windows, and maximum position sizes at the contract layer.
-                  </p>
-                </div>
-              </div>
+          <div 
+            style={{ 
+              transition: 'all 0.5s ease',
+              minHeight: '300px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px dashed rgba(236, 223, 204, 0.15)',
+              borderRadius: '16px',
+              backgroundColor: 'rgba(60, 61, 55, 0.2)',
+              backdropFilter: 'blur(10px)',
+              padding: '40px'
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                [ Feed Interface Initializing ]
+              </p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-linen)', opacity: 0.8, maxWidth: '400px', margin: '0 auto', lineHeight: '1.5' }}>
+                Preparing the new optimized interface layout. Paste the custom interface design blocks here.
+              </p>
             </div>
           </div>
         ) : (
