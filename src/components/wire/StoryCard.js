@@ -18,14 +18,16 @@ const NARRATIVE_NAMES = {
   NAR_08: 'Black Swan',
 };
 
-// Custom Markdown Parser
+// Custom Markdown Parser to avoid dependency version mismatch errors
 function parseMarkdown(text) {
   if (!text) return '';
   
   let html = text;
+  
+  // Normalize line endings
   html = html.replace(/\r\n/g, '\n');
   
-  // Tables
+  // 1. Tables (parse before other block elements)
   const lines = html.split('\n');
   let inTable = false;
   let tableRows = [];
@@ -53,22 +55,22 @@ function parseMarkdown(text) {
   
   html = processedLines.join('\n');
   
-  // Headings
+  // 2. Headings
   html = html.replace(/^#### (.*?)$/gm, '<h4>$1</h4>');
   html = html.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
   html = html.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
   
-  // Bold & Italic
+  // 3. Bold & Italic
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
   html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
   html = html.replace(/_(.*?)_/g, '<em>$1</em>');
   
-  // Inline Code
+  // 4. Code blocks and inline code
   html = html.replace(/`(.*?)`/g, '<code>$1</code>');
   
-  // Lists
+  // 5. Bullet Lists
   const listProcessedLines = [];
   let inList = false;
   const finalLines = html.split('\n');
@@ -94,6 +96,7 @@ function parseMarkdown(text) {
     listProcessedLines.push('</ul>');
   }
   
+  // 6. Paragraphs (wrap blocks of text that aren't block elements)
   const blocks = listProcessedLines.join('\n').split(/\n\n+/);
   const resultBlocks = blocks.map(block => {
     const trimmed = block.trim();
@@ -115,24 +118,24 @@ function parseMarkdown(text) {
 
 function convertTableToHTML(rows) {
   if (rows.length < 2) return '';
-  const headers = rows[0]
-    .split('|')
-    .slice(1, -1)
-    .map(h => h.trim());
-    
-  let html = '<div style="overflow-x:auto; margin: 15px 0;"><table class="data-table"><thead><tr>';
-  headers.forEach(header => {
-    html += `<th>${header}</th>`;
+  
+  const parsedRows = rows.map(row => {
+    const cells = row.split('|').map(c => c.trim());
+    if (cells[0] === '') cells.shift();
+    if (cells[cells.length - 1] === '') cells.pop();
+    return cells;
+  });
+  
+  const headers = parsedRows[0];
+  const dataRows = parsedRows.slice(2); // Skip separator row
+  
+  let html = '<div class="table-container"><table><thead><tr>';
+  headers.forEach(h => {
+    html += `<th>${h}</th>`;
   });
   html += '</tr></thead><tbody>';
   
-  const dataRows = rows.slice(2);
-  dataRows.forEach(rowStr => {
-    const row = rowStr
-      .split('|')
-      .slice(1, -1)
-      .map(c => c.trim());
-      
+  dataRows.forEach(row => {
     html += '<tr>';
     for (let i = 0; i < headers.length; i++) {
       html += `<td>${row[i] || ''}</td>`;
@@ -158,66 +161,9 @@ function getRelativeTimeString(dateString) {
   return `${diffDays}d ago`;
 }
 
-// Generate premium themed abstract gradients based on story hash/id
-function getStoryGradient(id, type) {
-  let color1 = 'rgba(60, 61, 55, 0.4)';
-  let color2 = 'rgba(30, 32, 30, 0.95)';
-  
-  if (type === 'breaking') {
-    color1 = 'rgba(239, 68, 68, 0.35)'; // shift red
-  } else if (type === 'deep_dive') {
-    color1 = 'rgba(212, 168, 83, 0.35)'; // wire gold
-  } else if (type === 'pulse') {
-    color1 = 'rgba(96, 165, 250, 0.35)'; // data blue
-  }
-  
-  return `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
-}
-
-export default function StoryCard({ story, isWide = false }) {
+export default function StoryCard({ story, isDetail = false }) {
   const { id, type, title, body, summary, chart_data, narrative_state, published_at } = story;
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Interactive like / dislike system
-  const [likeCount, setLikeCount] = useState(0);
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
-
-  useEffect(() => {
-    // Generate a stable seed count based on story ID hash
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = id.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    setLikeCount(Math.abs(hash % 250) + 12);
-  }, [id]);
-
-  const handleLike = (e) => {
-    e.stopPropagation();
-    if (liked) {
-      setLiked(false);
-      setLikeCount(prev => prev - 1);
-    } else {
-      setLiked(true);
-      setLikeCount(prev => prev + 1);
-      if (disliked) {
-        setDisliked(false);
-      }
-    }
-  };
-
-  const handleDislike = (e) => {
-    e.stopPropagation();
-    if (disliked) {
-      setDisliked(false);
-    } else {
-      setDisliked(true);
-      if (liked) {
-        setLiked(false);
-        setLikeCount(prev => prev - 1);
-      }
-    }
-  };
 
   // Disable body scroll when modal is open
   useEffect(() => {
@@ -231,6 +177,7 @@ export default function StoryCard({ story, isWide = false }) {
     };
   }, [isModalOpen]);
 
+  // Format Date (No raw system fallbacks, using clean format)
   const dateFormatted = new Date(published_at).toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -241,23 +188,24 @@ export default function StoryCard({ story, isWide = false }) {
   });
 
   const relativeTime = getRelativeTimeString(published_at);
-  const bgGradient = getStoryGradient(id, type);
 
+  // Render markdown body alongside inline charts (Only for details view or expanded cards)
   const renderBodyContent = () => {
     if (!body) return null;
+
     const parts = body.split(/(\[ETF Flow Trend Chart\]|\[Sector Heatmap\])/g);
 
     return parts.map((part, index) => {
       if (part === '[ETF Flow Trend Chart]') {
         return (
-          <div key={index} className="clay-glass chart-container-card" style={{ padding: '20px', margin: '15px 0' }}>
+          <div key={index} className="clay-glass chart-container-card">
             <FlowChart data={chart_data?.etf_flows || []} />
           </div>
         );
       }
       if (part === '[Sector Heatmap]') {
         return (
-          <div key={index} className="clay-glass chart-container-card" style={{ padding: '20px', margin: '15px 0' }}>
+          <div key={index} className="clay-glass chart-container-card">
             <SectorHeatmap sectors={chart_data?.sectors || []} />
           </div>
         );
@@ -274,8 +222,10 @@ export default function StoryCard({ story, isWide = false }) {
     });
   };
 
+  // Render narrative state tags if available
   const renderNarrativeTags = () => {
     if (!narrative_state) return null;
+
     const parsedState = typeof narrative_state === 'string' 
       ? JSON.parse(narrative_state) 
       : narrative_state;
@@ -287,27 +237,12 @@ export default function StoryCard({ story, isWide = false }) {
     };
 
     return (
-      <div className="narrative-tags-container" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+      <div className="narrative-tags-container">
         {Object.entries(parsedState).map(([narId, temp]) => {
           const tempVal = parseFloat(temp);
           return (
-            <span 
-              key={narId} 
-              className="narrative-tag"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.62rem',
-                color: 'var(--color-sage)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'rgba(236,223,204,0.02)',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                border: '1px solid rgba(236,223,204,0.05)'
-              }}
-            >
-              <span className="narrative-tag-dot" style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: getTempColor(tempVal) }} />
+            <span key={narId} className="narrative-tag">
+              <span className="narrative-tag-dot" style={{ backgroundColor: getTempColor(tempVal) }} />
               {NARRATIVE_NAMES[narId] || narId} {tempVal.toFixed(0)}°
             </span>
           );
@@ -322,109 +257,96 @@ export default function StoryCard({ story, isWide = false }) {
     setIsModalOpen(!isModalOpen);
   };
 
-  return (
-    <>
-      <article 
-        className={`edge-card-base ${isWide ? 'edge-card-span-2' : ''}`}
-        onClick={handleToggle}
-        style={{ cursor: 'pointer' }}
-      >
-        {isWide ? (
-          /* Wide Cover Card Layout (Microsoft Edge Style Hero Card) */
-          <div style={{ position: 'relative', height: '100%', minHeight: '320px' }}>
-            <div 
-              className="edge-card-wide-bg" 
-              style={{ background: bgGradient }}
-            />
-            
-            <div className="edge-cover-card-body">
-              <div className="edge-card-source">
-                <span className="edge-card-source-dot" style={{ backgroundColor: type === 'breaking' ? 'var(--color-shift-red)' : 'var(--color-wire-gold)' }} />
-                <span>🔥 CINDER WIRE</span>
-                <span>•</span>
-                <span>{relativeTime}</span>
+  const cardClasses = `story-card clay-glass ${type === 'breaking' ? 'story-breaking' : ''}`;
+
+  if (isDetail) {
+    return (
+      <article className="story-detail-wrapper">
+        <header className="story-detail-header">
+          <div className="story-meta-left">
+            <span className={`story-type-badge ${type}`}>
+              <span className="story-badge-dot" />
+              {type === 'breaking' && 'Breaking'}
+              {type === 'deep_dive' && 'Deep Dive'}
+              {type === 'pulse' && 'Market Pulse'}
+            </span>
+            <time className="story-date">{dateFormatted}</time>
+          </div>
+          <h1 className="story-detail-title">{title}</h1>
+          {summary && <p className="story-detail-subhead">{summary}</p>}
+        </header>
+
+        {type === 'breaking' && chart_data?.execution && (
+          <div className="clay-glass breaking-execution-banner">
+            <div className="execution-banner-title">EXECUTION DETAILS</div>
+            <div className="execution-details-grid">
+              <div>
+                <span className="execution-detail-label">Asset Pair:</span>{' '}
+                <span className="execution-detail-value">{chart_data.execution.pair}</span>
               </div>
-              
-              <h2 className="edge-cover-title">{title}</h2>
-              {summary && <p className="edge-cover-desc">{summary}</p>}
-              
-              {renderNarrativeTags()}
+              <div>
+                <span className="execution-detail-label">Side:</span>{' '}
+                <span className="execution-detail-value">{chart_data.execution.side}</span>
+              </div>
+              <div>
+                <span className="execution-detail-label">Quantity:</span>{' '}
+                <span className="execution-detail-value">{chart_data.execution.qty}</span>
+              </div>
+              <div>
+                <span className="execution-detail-label">Price:</span>{' '}
+                <span className="execution-detail-value">${parseFloat(chart_data.execution.price || 0).toFixed(2)}</span>
+              </div>
             </div>
           </div>
-        ) : (
-          /* Standard Card Layout (Microsoft Edge News Feed Card) */
-          <>
-            <div className="edge-card-image" style={{ background: bgGradient }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', opacity: 0.8 }}>
-                <span className="logo-alpha" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.02em', color: 'var(--color-linen)' }}>
-                  Cin<span className="logo-wire" style={{ color: 'var(--color-wire-gold)' }}>der</span>
-                </span>
-                <span style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.62rem',
-                  textTransform: 'uppercase',
-                  color: 'var(--color-sage)',
-                  border: '1px solid var(--glass-border)',
-                  padding: '2px 8px',
-                  borderRadius: '10px'
-                }}>
-                  {type === 'breaking' ? 'Breaking Alert' : type === 'deep_dive' ? 'Deep Dive' : 'Market Pulse'}
-                </span>
-              </div>
-            </div>
-
-            <div className="edge-card-body">
-              <div className="edge-card-source">
-                <span className="edge-card-source-dot" style={{ backgroundColor: type === 'breaking' ? 'var(--color-shift-red)' : 'var(--color-wire-gold)' }} />
-                <span>🔥 CINDER INTEL</span>
-                <span>•</span>
-                <span>{relativeTime}</span>
-              </div>
-
-              <h3 className="edge-card-title">{title}</h3>
-              {summary && <p className="edge-card-desc">{summary}</p>}
-              {renderNarrativeTags()}
-            </div>
-          </>
         )}
 
-        {/* Universal Footer for Thumbs and Navigation */}
-        <div className="edge-card-footer" onClick={(e) => e.stopPropagation()}>
-          <div className="edge-card-social">
-            <button 
-              className="edge-social-btn" 
-              onClick={handleLike}
-              style={{ color: liked ? 'var(--color-wire-gold)' : 'var(--color-sage)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-              </svg>
-              <span>{likeCount}</span>
-            </button>
-            <button 
-              className="edge-social-btn" 
-              onClick={handleDislike}
-              style={{ color: disliked ? 'var(--color-shift-red)' : 'var(--color-sage)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill={disliked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm12-7h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3" />
-              </svg>
-            </button>
-          </div>
+        <hr className="story-divider" />
 
-          <a href={`/story/${id}`} onClick={handleToggle} className="story-read-link" style={{ fontSize: '0.78rem', color: 'var(--color-wire-gold)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+        <div className="story-body-content">
+          {renderBodyContent()}
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <>
+      <article className={cardClasses}>
+        <div className="story-card-top" onClick={handleToggle} style={{ cursor: 'pointer' }}>
+          <header className="story-card-header">
+            <div className="story-meta-left">
+              <span className={`story-type-badge ${type}`}>
+                <span className="story-badge-dot" />
+                {type === 'breaking' && 'Breaking'}
+                {type === 'deep_dive' && 'Deep Dive'}
+                {type === 'pulse' && 'Market Pulse'}
+              </span>
+            </div>
+            <time className="story-date" title={dateFormatted}>{relativeTime}</time>
+          </header>
+
+          <div className="story-card-content">
+            <Link href={`/story/${id}`} onClick={handleToggle}>
+              <h2 className="story-title">{title}</h2>
+            </Link>
+            {summary && <p className="story-summary-text">{summary}</p>}
+          </div>
+        </div>
+
+        <div className="story-card-footer">
+          {renderNarrativeTags()}
+          <a href={`/story/${id}`} onClick={handleToggle} className="story-read-link">
             <span>Read Report</span>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <svg className="story-read-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </a>
         </div>
       </article>
 
-      {/* Render detailed full-screen modal exactly as before */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="story-modal-wrapper-fixed" style={{ zIndex: 2000 }}>
+          <div className="story-modal-wrapper-fixed">
             <motion.div 
               className="story-modal-backdrop"
               initial={{ opacity: 0 }}
