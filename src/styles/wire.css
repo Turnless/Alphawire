@@ -1151,9 +1151,11 @@
   bottom: 0;
   width: 280px;
   max-width: 80vw;
-  background: var(--color-obsidian);
+  background: #1E201E !important; /* Solid obsidian background to prevent transparency */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-left: 1px solid var(--glass-border);
-  box-shadow: -10px 0 32px rgba(0, 0, 0, 0.8), inset 1px 0 0 rgba(236, 223, 204, 0.05);
+  box-shadow: -10px 0 32px rgba(0, 0, 0, 0.85), inset 1px 0 0 rgba(236, 223, 204, 0.05);
   z-index: 2010;
   padding: 24px;
   display: flex;

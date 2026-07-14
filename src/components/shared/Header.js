@@ -43,6 +43,19 @@ export default function Header() {
     };
   }, [showDropdown]);
 
+  // Close mobile sidebar menu if window is resized to PC/Desktop width
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   // Handle claiming test tokens and then automatically close the dropdown
   const handleClaim = async () => {
     await claimFaucet();
