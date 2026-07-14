@@ -243,6 +243,12 @@ export default function Header() {
             {/* Drawer Sidebar Panel */}
             <motion.div 
               className="mobile-sidebar-drawer"
+              style={{
+                backgroundColor: '#1E201E',
+                background: '#1E201E',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)'
+              }}
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}

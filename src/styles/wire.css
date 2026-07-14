@@ -1132,6 +1132,12 @@
   border-color: rgba(212, 168, 83, 0.35);
 }
 
+@media (min-width: 768px) {
+  .mobile-nav-toggle {
+    display: none !important;
+  }
+}
+
 .mobile-sidebar-backdrop {
   position: fixed;
   top: 0;
