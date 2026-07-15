@@ -23,7 +23,7 @@
 
 ## System Overview
 
-AlphaWire is a three-layer system that transforms raw financial data into published intelligence and actionable trades:
+Cinder is a three-layer system that transforms raw financial data into published intelligence and actionable trades:
 
 ```
                     ┌─────────────────────────────────────────────────────────┐
@@ -744,7 +744,7 @@ generate-pulse (every 4 hours)
 │  ├─ master wallet key(offline, used for addAPIKey/revokeAPIKey)
 │  └─ Testnet key recommended for demo         │
 │  
-│  SODEX_API_KEY_NAME_PRIVATE_KEY (used for trading)
+│  SODEX_API_KEY_PRIVATE_KEY (used for trading)
 │  OpenAI API Key                              │
 │  ├─ Stored in .env (server-side only)        │
 │  └─ Used in story generation API routes      │

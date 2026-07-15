@@ -10,7 +10,7 @@ import TemperatureGauge from '../../components/narrative/TemperatureGauge';
 import { useWallet } from '../../context/WalletContext';
 
 export default function FeedPage() {
-  const { isConnected } = useWallet();
+  const { isConnected, walletChecked } = useWallet();
   const router = useRouter();
   const { scrollY } = useScroll();
 
@@ -18,12 +18,17 @@ export default function FeedPage() {
   const headingY = useTransform(scrollY, [0, 450], [0, -100]);
   const headingOpacity = useTransform(scrollY, [0, 320], [1, 0]);
 
-  // Route protection gating: instantly redirect disconnected users back to landing page
+  // Route protection gating: only redirect after wallet check is complete
   useEffect(() => {
-    if (!isConnected) {
+    if (walletChecked && !isConnected) {
       router.push('/');
     }
-  }, [isConnected, router]);
+  }, [isConnected, walletChecked, router]);
+
+  // Show nothing while wallet check is in progress (prevents redirect flash)
+  if (!walletChecked) {
+    return <main style={{ minHeight: '100vh', backgroundColor: 'var(--color-obsidian)' }} />;
+  }
 
   // Render a clean, empty blank screen during redirect transition to prevent flashes
   if (!isConnected) {

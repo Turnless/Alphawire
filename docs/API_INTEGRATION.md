@@ -179,7 +179,7 @@ export async function getOrderSignatureHeaders(
   actionType, params, apiKeyPrivateKey, apiKeyName, market, isMainnet
 ) {
   const wallet = new ethers.Wallet(apiKeyPrivateKey);
-  const nonce = Date.now(); // must fall within (T-2 days, T+1 day) of block time
+  const nonce = nextNonce(); // monotonic counter, must fall within (T-2 days, T+1 day) of block time
 
   // 1. Build exactly what the server will re-marshal and compare against.
   //    Compact JSON, no whitespace. Key order in params must match the

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import FlowChart from './FlowChart';
 import SectorHeatmap from './SectorHeatmap';
+
+const FlowChart = lazy(() => import('./FlowChart'));
 
 // Map of narrative IDs to readable labels
 const NARRATIVE_NAMES = {
@@ -299,7 +300,9 @@ export default function StoryCard({ story, isWide = false }) {
       if (part === '[ETF Flow Trend Chart]') {
         return (
           <div key={index} className="clay-glass chart-container-card" style={{ padding: '20px', margin: '15px 0' }}>
-            <FlowChart data={chart_data?.etf_flows || []} />
+            <Suspense fallback={<div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-sage)', fontSize: '0.75rem' }}>Loading chart...</div>}>
+              <FlowChart data={chart_data?.etf_flows || []} />
+            </Suspense>
           </div>
         );
       }

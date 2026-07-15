@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 
 const WalletContext = createContext({
   isConnected: false,
+  walletChecked: false,
   walletAddress: null,
   balance: 0,
   ethBalance: null,
@@ -17,6 +18,7 @@ const WalletContext = createContext({
 
 export function WalletProvider({ children }) {
   const [isConnected, setIsConnected] = useState(false);
+  const [walletChecked, setWalletChecked] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
   const [balance, setBalance] = useState(0); // CNDR balance
   const [ethBalance, setEthBalance] = useState(null); // Real native ETH balance
@@ -125,6 +127,7 @@ export function WalletProvider({ children }) {
           console.error('Error checking pre-authorized accounts:', err);
         }
       }
+      setWalletChecked(true);
     };
     initWeb3Wallet();
   }, []);
@@ -378,6 +381,7 @@ export function WalletProvider({ children }) {
     <WalletContext.Provider
       value={{
         isConnected,
+        walletChecked,
         walletAddress,
         balance,
         ethBalance,

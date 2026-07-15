@@ -11,7 +11,7 @@ import QuickTrade from '../../components/trading/QuickTrade';
 import { useWallet } from '../../context/WalletContext';
 
 export default function PortfolioPage() {
-  const { isConnected, walletAddress, balance: cndrBalance } = useWallet();
+  const { isConnected, walletAddress, balance: cndrBalance, walletChecked } = useWallet();
   const router = useRouter();
   const [tradeData, setTradeData] = useState({
     balance: '0.00',
@@ -50,12 +50,12 @@ export default function PortfolioPage() {
     }
   };
 
-  // Redirect if disconnected
+  // Redirect if disconnected — only after wallet check is complete
   useEffect(() => {
-    if (!isConnected) {
+    if (walletChecked && !isConnected) {
       router.push('/');
     }
-  }, [isConnected, router]);
+  }, [isConnected, walletChecked, router]);
 
   const fetchPortfolioData = useCallback(async () => {
     try {
@@ -101,7 +101,7 @@ export default function PortfolioPage() {
     ? tradeData.trades[0].pair
     : 'None';
 
-  if (!isConnected) {
+  if (!walletChecked || !isConnected) {
     return <main style={{ minHeight: '100vh', backgroundColor: 'var(--color-obsidian)' }} />;
   }
 

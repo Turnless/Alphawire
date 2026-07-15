@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import LiveIndicator from './LiveIndicator';
 import { useWallet } from '../../context/WalletContext';
 
 export default function Header() {
@@ -71,7 +70,6 @@ export default function Header() {
             <span className="logo-alpha">Cin</span>
             <span className="logo-wire">der</span>
           </Link>
-          <LiveIndicator />
         </div>
         
         <div className="nav-right" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>

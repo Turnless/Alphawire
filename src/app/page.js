@@ -27,7 +27,7 @@ function getRelativeTimeString(dateString) {
 
 export default function HomePage() {
   const { scrollY } = useScroll();
-  const { isConnected, connectWallet, isConnecting } = useWallet();
+  const { isConnected, walletChecked, connectWallet, isConnecting } = useWallet();
   const router = useRouter();
   
   const [latestStory, setLatestStory] = useState(null);
@@ -39,12 +39,12 @@ export default function HomePage() {
   const heroScale = useTransform(scrollY, [0, 400], [1, 0.92]);
   const heroY = useTransform(scrollY, [0, 400], [0, -60]);
 
-  // Auto-redirect connected wallets to /feed page
+  // Auto-redirect connected wallets to /feed page — only after wallet check is complete
   useEffect(() => {
-    if (isConnected) {
+    if (walletChecked && isConnected) {
       router.push('/feed');
     }
-  }, [isConnected, router]);
+  }, [isConnected, walletChecked, router]);
 
   // Fetch only the single latest story for the compact disconnected preview
   useEffect(() => {

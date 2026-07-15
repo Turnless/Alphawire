@@ -184,29 +184,41 @@ cp .env.example .env
 # SoSoValue API
 SOSOVALUE_API_KEY=your_sosovalue_api_key
 
-#TURSO_API
-TURSO_DATABASE_URL=
-TURSO_AUTH_TOKEN=
+# Turso Database
+TURSO_DATABASE_URL=libsql://your-db.turso.io
+TURSO_AUTH_TOKEN=your_turso_auth_token
 
 # SoDEX API
 SODEX_API_KEY_NAME=your_api_key_name
-SODEX_API_KEY_NAME_PRIVATE_KEY=your_api_key_name_private_key
-SODEX_PRIVATE_KEY=your_evm_private_key
-SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1
+SODEX_API_KEY_PRIVATE_KEY=your_api_key_private_key
+SODEX_MASTER_PRIVATE_KEY=your_master_private_key
+SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1/spot
+USER_WALLET_ADDRESS=0x...
 
-# OpenAI (for story generation + narrative NLP)
+# OpenAI
 OPENAI_API_KEY=your_openai_api_key
 
-# Telegram Bot (optional, for alerts)
+# Telegram Bot (optional)
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
 
-# App Configuration
-NARRATIVE_TRADE_THRESHOLD=80        # Min confidence to auto-trade (0-100)
-MAX_ALLOCATION_PER_TRADE=0.30       # Max 30% of portfolio per narrative trade
-STOP_LOSS_PERCENTAGE=0.08           # 8% trailing stop-loss
-COOLDOWN_HOURS=48                   # Hours between narrative trades
-AUTO_TRADE_ENABLED=false            # Set to true to enable auto-trading
+# Trading & Risk
+NARRATIVE_TRADE_THRESHOLD=80
+MAX_ALLOCATION_PER_TRADE=0.30
+STOP_LOSS_PERCENTAGE=0.08
+COOLDOWN_HOURS=48
+AUTO_TRADE_ENABLED=false
+QTY_DECIMALS=4
+
+# Security
+INTERNAL_API_SECRET=your_secret_here   # Required for POST /api/trade and /api/stories
+
+# Pruning
+NEWS_TTL_HOURS=48
+ETF_FLOWS_TTL_HOURS=24
+
+# Kill-switch behavior
+KILL_SWITCH_FAIL_CLOSED=true           # Default to paused on Edge Config error
 ```
 
 ### Running Locally
@@ -224,7 +236,7 @@ Cinder ships pre-configured for **SoDEX Testnet**. No real funds required for de
 
 ```bash
 # Ensure .env uses testnet URLs
-SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1
+SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1/spot
 
 # Start with auto-trading enabled (safe on testnet)
 AUTO_TRADE_ENABLED=true npm run dev
@@ -321,10 +333,16 @@ cinder/
 │   │   ├── sodex.js                # SoDEX API client (with EIP-712 signing)
 │   │   ├── openai.js               # LLM client for story gen + NLP
 │   │   ├── db.js                   # libSQL/Turso database client helpers
+│   │   ├── validator.js            # try/catch on DB queries
 │   │   ├── rate-limiter.js         # Sliding window rate limiter helper
 │   │   ├── scheduler.js            # Node-cron scheduler for automated jobs
 │   │   └── telegram.js             # Telegram bot client
 │   ├── engine/                     # Narrative intelligence engine (JS)
+│   │   ├── __tests__/
+│   │   │   ├── narrative.test.js
+│   │   │   ├── shift-detector.test.js
+│   │   │   ├── trade-engine.test.js
+│   │   │   └── trade-engine-fidelity.test.js
 │   │   ├── narrative.js            # Narrative classifier & temperature tracker
 │   │   ├── shift-detector.js       # Multi-signal shift detection
 │   │   └── trade-engine.js         # Risk-managed trade execution logic

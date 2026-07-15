@@ -34,19 +34,6 @@ export default function Footer() {
             <p style={{ fontSize: '0.8rem', color: 'var(--color-sage)', lineHeight: '1.6', maxWidth: '280px' }}>
               Autonomous narrative-driven trade execution and real-time ETF flow analytics.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-              <span style={{ 
-                width: '6px', 
-                height: '6px', 
-                borderRadius: '50%', 
-                backgroundColor: 'var(--color-pulse-green)',
-                display: 'inline-block',
-                boxShadow: '0 0 8px var(--color-pulse-green)'
-              }} />
-              <span style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--color-pulse-green)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                All systems operational
-              </span>
-            </div>
           </div>
 
           {/* Links Col 1: Protocol */}

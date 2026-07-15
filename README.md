@@ -250,7 +250,7 @@ Cinder ships pre-configured for **SoDEX Testnet**. No real funds required for de
 
 ```bash
 # Ensure .env uses testnet URLs
-SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1
+SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1/spot
 
 # Start with auto-trading enabled (safe on testnet)
 AUTO_TRADE_ENABLED=true npm run dev
@@ -356,7 +356,8 @@ cinder/
 │   │   ├── __tests__/
 │   │   │   ├── narrative.test.js
 │   │   │   ├── shift-detector.test.js
-│   │   │   └── trade-engine.test.js
+│   │   │   ├── trade-engine.test.js
+│   │   │   └── trade-engine-fidelity.test.js
 │   │   ├── narrative.js
 │   │   ├── shift-detector.js
 │   │   └── trade-engine.js          # Kill-switch in stop-loss, batch inserts

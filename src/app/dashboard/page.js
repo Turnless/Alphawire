@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Header from '../../components/shared/Header';
-import BubbleMap from '../../components/narrative/BubbleMap';
 import Timeline from '../../components/narrative/Timeline';
 import ShiftAlert from '../../components/narrative/ShiftAlert';
 import TemperatureGauge from '../../components/narrative/TemperatureGauge';
 import { useWallet } from '../../context/WalletContext';
+
+const BubbleMap = lazy(() => import('../../components/narrative/BubbleMap'));
 
 const NARRATIVE_NAMES = {
   NAR_01: 'Institutional Accumulation',
@@ -23,18 +24,18 @@ const NARRATIVE_NAMES = {
 };
 
 export default function DashboardPage() {
-  const { isConnected } = useWallet();
+  const { isConnected, walletChecked } = useWallet();
   const router = useRouter();
   const [narrativeData, setNarrativeData] = useState({ temperatures: {}, shifts: [] });
   const [tradeData, setTradeData] = useState({ riskConfig: { threshold: 80 } });
   const [loading, setLoading] = useState(true);
 
-  // Redirect if disconnected
+  // Redirect if disconnected — only after wallet check is complete
   useEffect(() => {
-    if (!isConnected) {
+    if (walletChecked && !isConnected) {
       router.push('/');
     }
-  }, [isConnected, router]);
+  }, [isConnected, walletChecked, router]);
 
   const fetchData = async () => {
     try {
@@ -81,7 +82,7 @@ export default function DashboardPage() {
     };
   }).sort((a, b) => b.temperature - a.temperature);
 
-  if (!isConnected) {
+  if (!walletChecked || !isConnected) {
     return <main style={{ minHeight: '100vh', backgroundColor: 'var(--color-obsidian)' }} />;
   }
 
@@ -182,7 +183,9 @@ export default function DashboardPage() {
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-wire-gold)' }} />
                 Narrative Heat Map
               </div>
-              <BubbleMap temperatures={narrativeData.temperatures} />
+              <Suspense fallback={<div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-sage)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>Loading heatmap...</div>}>
+                <BubbleMap temperatures={narrativeData.temperatures} />
+              </Suspense>
             </div>
           </div>
 

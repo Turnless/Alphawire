@@ -157,3 +157,22 @@ If you are away from your dashboard, issue the pause command via Telegram:
 3. Verify that the bot replies with confirmation:
    "Cinder Trading Kill-Switch Triggered. Automated execution is now PAUSED."
 4. Use the `/status` command to verify that all subsequent checks report `KILL_SWITCH_ACTIVE`.
+
+---
+
+## 5. Kill-Switch Fails Closed
+
+If the system reports `Kill-switch state unknown, defaulting to paused` in logs and all trading is halted even when Edge Config should be operational:
+
+### Step 5.1: Check Edge Config Connectivity
+1. Verify that the Edge Config URL is correctly set in the `EDGE_CONFIG_URL` environment variable.
+2. Check if the Edge Config client is reachable from the deployment environment.
+
+### Step 5.2: Verify Fail-Closed Setting
+1. Confirm that `KILL_SWITCH_FAIL_CLOSED` is set to `true` (default).
+2. This is expected behavior when Edge Config is unreachable — the system defaults to paused to prevent unauthorized trading.
+
+### Step 5.3: Resolution
+1. If Edge Config connectivity is confirmed, the issue is likely transient — wait for the next cron tick and the system should resume automatically.
+2. If Edge Config is permanently unavailable, set `KILL_SWITCH_FAIL_CLOSED=false` and use `AUTO_TRADE_ENABLED=false` as the primary kill-switch.
+3. As a last resort, use the Telegram `/pause` command to manually activate the kill-switch.
