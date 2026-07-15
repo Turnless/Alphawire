@@ -1,28 +1,77 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+
+const NARRATIVE_NAMES = {
+  NAR_01: 'Institutional Accumulation',
+  NAR_02: 'Retail FOMO',
+  NAR_03: 'Regulatory Storm',
+  NAR_04: 'AI/Tech Rotation',
+  NAR_05: 'DeFi Renaissance',
+  NAR_06: 'Risk-Off Flight',
+  NAR_07: 'L2/Infra Cycle',
+  NAR_08: 'Black Swan',
+};
 
 export default function TemperatureGauge({ 
-  temperature = 0, 
-  label = 'Temperature', 
+  temperature = null, 
+  label = null, 
   diameter = 120 
 }) {
-  const roundedTemp = Math.round(temperature);
+  const [liveTemp, setLiveTemp] = useState(0);
+  const [liveLabel, setLiveLabel] = useState('Market Temp');
+
+  useEffect(() => {
+    // If props are explicitly provided, use them and do not fetch
+    if (temperature !== null && label !== null) {
+      setLiveTemp(temperature);
+      setLiveLabel(label);
+      return;
+    }
+
+    const fetchLiveTemperature = async () => {
+      try {
+        const res = await fetch('/api/narrative');
+        const json = await res.json();
+        if (json.success && json.temperatures) {
+          // Find narrative with the highest temperature
+          let maxTemp = -1;
+          let maxId = 'NAR_01';
+          Object.entries(json.temperatures).forEach(([id, data]) => {
+            if (data.temperature > maxTemp) {
+              maxTemp = data.temperature;
+              maxId = id;
+            }
+          });
+          setLiveTemp(maxTemp >= 0 ? maxTemp : 0);
+          setLiveLabel(NARRATIVE_NAMES[maxId] || 'Market Temp');
+        }
+      } catch (e) {
+        console.error('Failed to fetch narrative temperature for gauge:', e);
+      }
+    };
+
+    fetchLiveTemperature();
+    const interval = setInterval(fetchLiveTemperature, 15000);
+    return () => clearInterval(interval);
+  }, [temperature, label]);
+
+  const roundedTemp = Math.round(liveTemp);
   const strokeWidth = 8;
   const radius = (diameter / 2) - strokeWidth;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (Math.min(100, Math.max(0, temperature)) / 100) * circumference;
+  const strokeDashoffset = circumference - (Math.min(100, Math.max(0, liveTemp)) / 100) * circumference;
 
   // Determine arc progress color
   let progressColor = 'var(--color-sage)';
   let filterGlow = 'none';
 
-  if (temperature >= 80) {
+  if (liveTemp >= 80) {
     progressColor = 'var(--color-shift-red)';
     filterGlow = 'url(#gauge-glow-red)';
-  } else if (temperature >= 60) {
+  } else if (liveTemp >= 60) {
     progressColor = 'var(--color-alert-amber)';
-  } else if (temperature >= 40) {
+  } else if (liveTemp >= 40) {
     progressColor = 'var(--color-data-blue)';
   }
 
@@ -31,7 +80,7 @@ export default function TemperatureGauge({
   const labelFontSize = diameter >= 180 ? '0.78rem' : '0.68rem';
 
   return (
-    <div className="gauge-container" style={{ width: diameter, height: diameter }}>
+    <div className="gauge-container" style={{ width: diameter, height: diameter, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
       <svg width={diameter} height={diameter} viewBox={`0 0 ${diameter} ${diameter}`}>
         <defs>
           {/* Red Glow Filter for Narrative Shifts (>80 degrees) */}
@@ -111,7 +160,7 @@ export default function TemperatureGauge({
             whiteSpace: 'nowrap'
           }}
         >
-          {label}
+          {liveLabel}
         </span>
       </div>
     </div>

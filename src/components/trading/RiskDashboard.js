@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 
 export default function RiskDashboard({ 
   positions = [], 
+  trades = [],
   autoTradeEnabled = false,
   cooldownHours = 48,
   maxAllocation = 0.30,
@@ -13,14 +14,31 @@ export default function RiskDashboard({
   // Calculate stop-loss metrics
   const activeStopLossesCount = positions.filter(p => p.stopLoss && parseFloat(p.stopLoss) !== 0).length;
   
-  // Custom circuit breaker parameters
-  const currentDailyDrawdown = 0.0; // 0.0% nominal
-  const circuitBreakerTriggered = false;
-
-  // Last trade cooldown
-  const hoursSinceLastTrade = 14;
+  // Compute real cooldown from last buy trade
+  const lastBuyTrade = trades.find(t => t.side === 'buy' && (t.status === 'filled' || t.status === 'stopped'));
+  const hoursSinceLastTrade = lastBuyTrade
+    ? (Date.now() - new Date(lastBuyTrade.created_at).getTime()) / (1000 * 60 * 60)
+    : cooldownHours + 1;
   const isCooldownActive = hoursSinceLastTrade < cooldownHours;
-  const cooldownRemaining = cooldownHours - hoursSinceLastTrade;
+  const cooldownRemaining = Math.max(0, Math.ceil(cooldownHours - hoursSinceLastTrade));
+
+  // Compute daily drawdown from recent stopped/closed trades
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const recentClosed = trades.filter(t =>
+    (t.status === 'stopped' || t.status === 'closed') &&
+    new Date(t.closed_at || t.created_at).getTime() >= oneDayAgo
+  );
+  let totalLoss = 0;
+  for (const t of recentClosed) {
+    const fill = parseFloat(t.fill_price || 0);
+    const exit = parseFloat(t.stop_loss_price || t.fill_price || 0);
+    const qty = parseFloat(t.quantity || 0);
+    const pnl = (exit - fill) * qty;
+    if (pnl < 0) totalLoss += Math.abs(pnl);
+  }
+  const portfolioValue = positions.reduce((sum, p) => sum + parseFloat(p.value || 0), 0) + parseFloat(trades[0]?.fill_price || 0);
+  const currentDailyDrawdown = portfolioValue > 0 ? (totalLoss / portfolioValue) * 100 : 0;
+  const circuitBreakerTriggered = currentDailyDrawdown > 15;
 
   return (
     <div className="risk-dashboard clay-glass" style={{ padding: 'var(--space-lg)', borderRadius: 'var(--radius-lg)' }}>

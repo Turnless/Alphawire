@@ -39,26 +39,33 @@ DATA PROVIDED:
 - Top AI News Headlines: ${headlinesStr}
 - Current Narrative Temperature: ${narrativeTemp}
 
-RULES:
-- Write in Reuters/Bloomberg wire style: factual, concise, institutional
+REPORT STRUCTURE & FORMAT:
+- First line MUST be the Headline, starting with a markdown header (e.g. # Headline)
 - Lead with the most significant data point
 - Include ONE forward-looking "AI Analysis" paragraph
 - End with narrative temperature reading
 - Keep under 300 words
-- Do NOT use emojis in the body text`;
+- Do NOT use emojis in the body text
+
+HEADLINE & CONTENT RULES:
+- The Headline MUST NEVER lead with a raw percentage or a "<Asset> News:" format.
+- The Headline MUST lead with a specific actor, an anomaly, or a comparison to a prior period — pull the single highest-signal data point, not the aggregate score.
+- BANNED words/phrases (do NOT use these in the headline or the story body): surges, plunges, "here's what you need to know", explained, alert, breaking.
+- If no genuinely distinctive angle exists in the data, say so plainly rather than manufacturing one.
+- Do not make your story look too generic; make it more human, writing with an engaging and analytical touch, avoiding typical robotic wire clichés.`;
 
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: 'You are an institutional financial journalist.' },
+        { role: 'system', content: 'You are an institutional financial journalist specializing in engaging, human-centric narrative reporting.' },
         { role: 'user', content: prompt }
       ]
     });
     return response.choices[0].message.content.trim();
   } catch (error) {
     console.error('Error generating Market Pulse:', error);
-    return `MARKET PULSE ERROR: Failed to generate report. Raw flows: BTC ETF: ${btcFlow}, ETH ETF: ${ethFlow}. Sector Movers: Top: ${topSector} (${topSectorReturn}), Bottom: ${bottomSector} (${bottomSectorReturn}).`;
+    throw error;
   }
 }
 
@@ -82,6 +89,7 @@ DATA PROVIDED:
 - Current Narrative State: ${typeof narrativeState === 'object' ? JSON.stringify(narrativeState) : narrativeState}
 
 RULES:
+- First line MUST be the Headline, starting with a markdown header (e.g. # Headline)
 - Write in a professional, Wall Street research note style: analytical, objective, detailed.
 - Structure the report into:
   1. Executive Summary
@@ -91,20 +99,27 @@ RULES:
   5. Outlook & Forward-Looking Risk Analysis
 - Output should be approximately 800 words in Markdown format.
 - Integrate references to the flow trend chart and sector heatmap (placeholder markers like [ETF Flow Trend Chart] or [Sector Heatmap] are fine for client rendering).
-- Do NOT use emojis.`;
+- Do NOT use emojis.
+
+HEADLINE & CONTENT RULES:
+- The Headline MUST NEVER lead with a raw percentage or a "<Asset> News:" format.
+- The Headline MUST lead with a specific actor, an anomaly, or a comparison to a prior period — pull the single highest-signal data point, not the aggregate score.
+- BANNED words/phrases (do NOT use these in the headline or the story body): surges, plunges, "here's what you need to know", explained, alert, breaking.
+- If no genuinely distinctive angle exists in the data, say so plainly rather than manufacturing one.
+- Do not make your story look too generic; make it more human, writing with an engaging and analytical touch, avoiding typical robotic wire clichés.`;
 
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: 'You are an institutional financial analyst and research editor.' },
+        { role: 'system', content: 'You are an institutional financial analyst and research editor specializing in engaging, human-centric narrative reporting.' },
         { role: 'user', content: prompt }
       ]
     });
     return response.choices[0].message.content.trim();
   } catch (error) {
     console.error('Error generating Daily Deep Dive:', error);
-    return `DAILY DEEP DIVE ERROR: Failed to generate report. Raw trends: ETF flow trend: ${JSON.stringify(etfFlowTrend)}, Sector: ${JSON.stringify(sectorComparison)}.`;
+    throw error;
   }
 }
 
@@ -135,7 +150,7 @@ export async function createBreakingStory({ shiftData, tradeData, publishedAt })
     signalsStr = signals;
   }
 
-  const prompt = `You are Cinder, an AI financial wire service. Write a Breaking News Alert about a market narrative regime change.
+  const prompt = `You are Cinder, an AI financial wire service. Write a News Alert about a market narrative regime change.
 
 SHIFT DETAILS:
 - Previous Narrative: ${fromNarrative}
@@ -154,26 +169,34 @@ TRADE DETAILS:
 - Executed At: ${publishedAt}
 
 RULES:
-- Lead with an urgent breaking headline in wire service style.
+- First line MUST be the Headline, starting with a markdown header (e.g. # Headline)
 - Clearly present the transition from the old narrative regime to the new one.
 - Include a Markdown table detailing the supporting evidence (signals) that triggered this shift.
 - Outline the trade execution details and explain the quantitative reasoning behind the trade.
-- Write in a factual, high-urgency, yet highly professional and institutional tone.
+- Write in a factual, professional, and institutional tone.
 - Do NOT use emojis.
-- Output should be approximately 500 words in Markdown.`;
+- Output should be approximately 500 words in Markdown.
+
+HEADLINE & CONTENT RULES:
+- The Headline MUST NEVER lead with a raw percentage or a "<Asset> News:" format.
+- The Headline MUST lead with a specific actor, an anomaly, or a comparison to a prior period — pull the single highest-signal data point, not the aggregate score.
+- BANNED words/phrases (do NOT use these in the headline or the story body): surges, plunges, "here's what you need to know", explained, alert, breaking.
+- If no genuinely distinctive angle exists in the data, say so plainly rather than manufacturing one.
+- Do not make your story look too generic; make it more human, writing with an engaging and analytical touch, avoiding typical robotic wire clichés.`;
 
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: 'You are an institutional financial wire editor.' },
+        { role: 'system', content: 'You are an institutional financial wire editor specializing in engaging, human-centric narrative reporting.' },
         { role: 'user', content: prompt }
-      ]
+      ],
+      signal: AbortSignal.timeout(30000)
     });
     return response.choices[0].message.content.trim();
   } catch (error) {
     console.error('Error generating Breaking Alert:', error);
-    return `BREAKING NEWS ALERT ERROR: Failed to generate alert. Shift detected from ${fromNarrative} to ${toNarrative} with ${confidence}% confidence. Trade executed: ${side} ${quantity} ${pair}.`;
+    throw error;
   }
 }
 
@@ -280,8 +303,208 @@ You must return a JSON object with:
     return {
       keywordFrequencies: {},
       sentimentScores: {},
-      classifications: []
+      classifications: [],
+      error: true
     };
   }
+}
+
+/**
+ * Classifies a batch of news items in a single OpenAI request.
+ * Returns a map of news ID to story type ('news', 'breaking', 'deep_dive', 'pulse').
+ */
+export async function classifyNewsBatch(newsItems) {
+  if (!newsItems || newsItems.length === 0) return {};
+  
+  const formattedItems = newsItems.map(item => 
+    `ID: ${item.id}\nTitle: ${item.title}\nSummary: ${item.summary || 'N/A'}`
+  ).join('\n---\n');
+
+  const prompt = `You are a crypto narrative intelligence analyst. You are given a batch of recent crypto news items.
+Your job is to categorize each news item into one of the following four channels:
+1. "news": Standard, routine daily news or updates (default for most items).
+2. "breaking": Highly critical, market-moving events or anomalies (e.g. major hacks, regulatory actions, sudden liquidations, black swans) that require an immediate Breaking Alert.
+3. "deep_dive": Analytical, long-term structural changes, protocol updates, or macro shifts that require an in-depth analysis report.
+4. "pulse": Short-term market performance, major price movements, or ETF flow developments.
+
+Analyze the news items below and return a JSON object containing a "classifications" array, where each object has:
+- "id": The ID of the news item
+- "classification": "news" | "breaking" | "deep_dive" | "pulse"
+- "reasoning": A brief explanation for any item classified as "breaking", "deep_dive", or "pulse".
+
+News Items:
+${formattedItems}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are an expert crypto market intelligence classifier.' },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' }
+    });
+    const result = JSON.parse(response.choices[0].message.content);
+    const mapping = {};
+    if (result && Array.isArray(result.classifications)) {
+      for (const cls of result.classifications) {
+        mapping[cls.id] = cls.classification || 'news';
+      }
+    }
+    return mapping;
+  } catch (error) {
+    console.error('Error in classifyNewsBatch:', error);
+    return {};
+  }
+}
+
+/**
+ * Generates a full markdown report based on a specific high-signal news event.
+ * @param {string} type - 'pulse' | 'deep_dive' | 'breaking'
+ * @param {Object} newsItem - The news item details (title, summary)
+ * @param {Object} marketContext - ETF flows, sector performance, narrative temperatures
+ */
+export async function generateStoryFromNewsItem(type, newsItem, marketContext) {
+  const btcFlow = marketContext.btcFlow || 'N/A';
+  const ethFlow = marketContext.ethFlow || 'N/A';
+  const sectorPerf = marketContext.sectorPerf ? JSON.stringify(marketContext.sectorPerf) : 'N/A';
+  const temps = marketContext.temps ? JSON.stringify(marketContext.temps) : 'N/A';
+
+  let styleDesc = '';
+  let structureRules = '';
+  let length = 300;
+
+  if (type === 'breaking') {
+    styleDesc = 'factual, high-urgency, professional wire news alert';
+    length = 400;
+    structureRules = `- First line MUST be the Headline, starting with a markdown header (e.g. # Headline)
+- Clearly present the core breaking event and why it matters to the market
+- Outline any potential immediate liquidity or volatility implications
+- Include a summary of current narrative states and relevant market indicators`;
+  } else if (type === 'deep_dive') {
+    styleDesc = 'professional Wall Street research note style: analytical, objective, detailed';
+    length = 600;
+    structureRules = `- First line MUST be the Headline, starting with a markdown header (e.g. # Headline)
+- Structure into sections: Executive Summary, Industry Context, Structural Implications, Market Analysis, and Risk/Outlook
+- Include analytical markdown tables or bullet points comparing current market metrics`;
+  } else {
+    styleDesc = 'concise, data-driven Market Pulse report';
+    length = 250;
+    structureRules = `- First line MUST be the Headline, starting with a markdown header (e.g. # Headline)
+- Present a swift market performance update, leading with the news item's market impact
+- Summarize ETF flows and active sector performance`;
+  }
+
+  const prompt = `You are Cinder, an AI financial wire service. Write a ${type} report based on the following high-signal news event.
+
+NEWS EVENT:
+- Title: ${newsItem.title}
+- Content: ${newsItem.summary || 'None'}
+
+MARKET CONTEXT DATA:
+- BTC ETF Net Flow: ${btcFlow}
+- ETH ETF Net Flow: ${ethFlow}
+- Sector Performance: ${sectorPerf}
+- Narrative Temperatures: ${temps}
+
+RULES:
+- Style: Write in a ${styleDesc}.
+- Length: Approximately ${length} words.
+- Formatting: Use clean markdown.
+${structureRules}
+
+HEADLINE & CONTENT RULES:
+- The Headline MUST NEVER lead with a raw percentage or a "<Asset> News:" format.
+- The Headline MUST lead with a specific actor, an anomaly, or a comparison to a prior period — pull the single highest-signal data point, not the aggregate score.
+- BANNED words/phrases (do NOT use these in the headline or the story body): surges, plunges, "here's what you need to know", explained, alert, breaking.
+- If no genuinely distinctive angle exists in the data, say so plainly rather than manufacturing one.
+- Do not make your story look too generic; write with a human, analytical touch, avoiding typical robotic wire clichés.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are an institutional financial editor specializing in engaging, human-centric reporting.' },
+        { role: 'user', content: prompt }
+      ]
+    });
+    return response.choices[0].message.content.trim();
+  } catch (error) {
+    console.error(`Error generating ${type} story from news:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Refines a batch of news items in a single OpenAI request.
+ */
+export async function refineNewsBatch(newsItems) {
+  if (!newsItems || newsItems.length === 0) return [];
+  
+  const formattedItems = newsItems.map(item => 
+    `ID: ${item.id}\nTitle: ${item.title}\nSummary: ${item.summary || 'N/A'}`
+  ).join('\n---\n');
+
+  const prompt = `You are Cinder, a premium financial news wire. Refine/rewrite the following batch of raw news articles (headlines and summaries) to be more human, engaging, and professional.
+
+RULES:
+- For each item, rewrite the Headline and Summary.
+- The Headline MUST NEVER lead with a raw percentage or a "<Asset> News:" format.
+- The Headline MUST lead with a specific actor, an anomaly, or a comparison to a prior period.
+- BANNED words/phrases (do NOT use these in the headline or summary): surges, plunges, "here's what you need to know", explained, alert, breaking.
+- Maintain a factual, professional, and institutional tone but make it human-centric and engaging, avoiding dry robotic templates.
+- Keep the summary clear, concise, and under 150 words.
+
+Return a JSON object containing a "refined" array, where each object has:
+- "id": The original ID
+- "title": The refined headline
+- "summary": The refined summary
+
+News Items:
+${formattedItems}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are an expert financial wire editor specializing in human-centric rewriting.' },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' }
+    });
+    const result = JSON.parse(response.choices[0].message.content);
+    return result.refined || [];
+  } catch (error) {
+    console.error('Error refining news batch:', error);
+    return [];
+  }
+}
+
+/**
+ * Refines all news items in chunks.
+ */
+export async function refineAllNews(newsItems) {
+  const batchSize = 10;
+  const refinedResults = [];
+  for (let i = 0; i < newsItems.length; i += batchSize) {
+    const batch = newsItems.slice(i, i + batchSize);
+    console.log(`[AI] Refining news batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(newsItems.length / batchSize)}...`);
+    const refined = await refineNewsBatch(batch);
+    refinedResults.push(...refined);
+  }
+  
+  const refinedMap = {};
+  for (const item of refinedResults) {
+    refinedMap[item.id] = item;
+  }
+  
+  return newsItems.map(item => {
+    const refined = refinedMap[item.id];
+    return {
+      ...item,
+      title: refined?.title || item.title,
+      summary: refined?.summary || item.summary
+    };
+  });
 }
 

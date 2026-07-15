@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyTelegramSignature, sendMessage } from '../../../lib/telegram';
-import { query } from '../../../lib/db';
+import { query, execute } from '../../../lib/db';
 import { getAccountState } from '../../../lib/sodex';
 import { rateLimit } from '../../../lib/rate-limiter';
 
@@ -24,12 +24,13 @@ export async function POST(request) {
     
     // Webhook security validation
     if (!verifyTelegramSignature(signature, bodyText)) {
-      // In development or if no token configured, let it pass to make testing easier
       const token = process.env.TELEGRAM_BOT_TOKEN;
-      if (token && token !== 'your_telegram_bot_token') {
-        console.warn('⚠️ Unauthorized Telegram webhook attempt. Invalid signature.');
-        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      if (!token || token === 'your_telegram_bot_token') {
+        console.error('[SECURITY] TELEGRAM_BOT_TOKEN not configured. Rejecting webhook to fail closed.');
+        return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 });
       }
+      console.warn('[WARNING] Unauthorized Telegram webhook attempt. Invalid signature.');
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     let update;
@@ -52,14 +53,106 @@ export async function POST(request) {
       const command = parts[0].toLowerCase();
 
       switch (command) {
+        case '/start': {
+          const token = parts[1];
+          if (token) {
+            try {
+              // Look up the token in the database
+              const tokenRows = await query(
+                'SELECT wallet_address FROM telegram_auth_tokens WHERE token = ?',
+                [token]
+              );
+              
+              if (tokenRows && tokenRows.length > 0) {
+                const walletAddress = tokenRows[0].wallet_address;
+                
+                // Register/update subscription with the linked wallet address
+                await execute(
+                  `INSERT INTO telegram_subscriptions (chat_id, wallet_address) 
+                   VALUES (?, ?)
+                   ON CONFLICT(chat_id) DO UPDATE SET wallet_address = excluded.wallet_address`,
+                  [String(chatId), walletAddress]
+                );
+                
+                // Delete the used token
+                await execute(
+                  'DELETE FROM telegram_auth_tokens WHERE token = ?',
+                  [token]
+                );
+
+                const welcomeMsg = `[START] <b>Cinder Bot Activated!</b>\n\n` +
+                  `Successfully linked to wallet <code>${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}</code>.\n\n` +
+                  `You will receive real-time narrative shift alerts and daily digests. Use /help to see commands.`;
+                await sendMessage(chatId, welcomeMsg);
+              } else {
+                await sendMessage(chatId, '[ERROR] <b>Invalid or Expired Connection Link</b>\nPlease generate a new link from the dashboard.');
+              }
+            } catch (e) {
+              console.error('[ERROR] Failed to process start token registration:', e);
+              await sendMessage(chatId, '[ERROR] Internal database error while linking wallet.');
+            }
+          } else {
+            // Generic subscription fallback
+            try {
+              await execute(
+                `INSERT INTO telegram_subscriptions (chat_id, wallet_address) 
+                 VALUES (?, NULL)
+                 ON CONFLICT(chat_id) DO NOTHING`,
+                [String(chatId)]
+              );
+              const welcomeMsg = `[START] <b>Welcome to Cinder Bot!</b>\n\n` +
+                `You have been successfully subscribed to real-time narrative shift alerts and daily digests.\n\n` +
+                `Use /help to view all available commands.`;
+              await sendMessage(chatId, welcomeMsg);
+            } catch (e) {
+              console.error('[ERROR] Failed to subscribe user on /start:', e);
+              await sendMessage(chatId, '[ERROR] Failed to initialize subscription.');
+            }
+          }
+          break;
+        }
+        case '/subscribe': {
+          try {
+            await execute(
+              'INSERT INTO telegram_subscriptions (chat_id, wallet_address) VALUES (?, NULL) ON CONFLICT(chat_id) DO NOTHING',
+              [String(chatId)]
+            );
+            await sendMessage(chatId, '[SUCCESS] <b>Subscription Active</b>\nYou will now receive live alerts and reports.');
+          } catch (e) {
+            console.error('[ERROR] Failed to subscribe user:', e);
+            await sendMessage(chatId, '[ERROR] Failed to process subscription.');
+          }
+          break;
+        }
+        case '/unsubscribe': {
+          try {
+            await execute(
+              'DELETE FROM telegram_subscriptions WHERE chat_id = ?',
+              [String(chatId)]
+            );
+            await sendMessage(chatId, '[SUCCESS] <b>Unsubscribed Successfully</b>\nYou will no longer receive alerts from Cinder.');
+          } catch (e) {
+            console.error('[ERROR] Failed to unsubscribe user:', e);
+            await sendMessage(chatId, '[ERROR] Failed to process unsubscription.');
+          }
+          break;
+        }
         case '/pause': {
+          if (String(chatId) !== String(process.env.TELEGRAM_CHAT_ID)) {
+            await sendMessage(chatId, '[ERROR] <b>Access Denied</b>\nOnly the system administrator can trigger the kill-switch.');
+            break;
+          }
           global.tradingPaused = true;
-          await sendMessage(chatId, '🚨 <b>Cinder Trading Kill-Switch Triggered</b>\nAutomated execution is now <b>PAUSED</b>.');
+          await sendMessage(chatId, '[ALERT] <b>Cinder Trading Kill-Switch Triggered</b>\nAutomated execution is now <b>PAUSED</b>.');
           break;
         }
         case '/resume': {
+          if (String(chatId) !== String(process.env.TELEGRAM_CHAT_ID)) {
+            await sendMessage(chatId, '[ERROR] <b>Access Denied</b>\nOnly the system administrator can resume trading.');
+            break;
+          }
           global.tradingPaused = false;
-          await sendMessage(chatId, '▶️ <b>Cinder Trading Resumed</b>\nAutomated execution is now <b>ACTIVE</b>.');
+          await sendMessage(chatId, '[START] <b>Cinder Trading Resumed</b>\nAutomated execution is now <b>ACTIVE</b>.');
           break;
         }
         case '/status': {
@@ -77,8 +170,8 @@ export async function POST(request) {
             } catch (e) {}
           }
 
-          const statusMsg = `ℹ️ <b>Cinder System Status</b>\n\n` +
-            `• <b>Execution State:</b> ${isPaused ? '🛑 PAUSED (Kill-Switch Active)' : '✅ RUNNING'}\n` +
+          const statusMsg = `[INFO] <b>Cinder System Status</b>\n\n` +
+            `• <b>Execution State:</b> ${isPaused ? '[PAUSED] (Kill-Switch Active)' : '[SUCCESS] RUNNING'}\n` +
             `• <b>Auto-Trading Switch:</b> ${autoTradeEnabled ? 'ON' : 'OFF'}\n` +
             `• <b>Available Balance:</b> <code>$${balance}</code>\n` +
             `• <b>Daily Drawdown:</b> <code>0.00%</code>`;
@@ -87,10 +180,12 @@ export async function POST(request) {
         }
         case '/help':
         default: {
-          const helpMsg = `📖 <b>Cinder Bot Command Reference</b>\n\n` +
-            `• /pause - Triggers the emergency kill-switch to pause trading\n` +
-            `• /resume - Deactivates the kill-switch and resumes execution\n` +
+          const helpMsg = `[INFO] <b>Cinder Bot Command Reference</b>\n\n` +
+            `• /subscribe - Opt-in to receive real-time narrative shift alerts and daily digests\n` +
+            `• /unsubscribe - Stop receiving automated alerts\n` +
             `• /status - Fetch real-time system performance and safety status\n` +
+            `• /pause - (Admin) Triggers the emergency kill-switch to pause trading\n` +
+            `• /resume - (Admin) Deactivates the kill-switch and resumes execution\n` +
             `• /help - Display this command manual`;
           await sendMessage(chatId, helpMsg);
           break;

@@ -161,3 +161,14 @@
   fill: var(--color-sage);
   text-anchor: middle;
 }
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 4px var(--color-pulse-green);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 10px var(--color-pulse-green);
+  }
+}

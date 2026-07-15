@@ -20,7 +20,17 @@ export function getDomain(market, isMainnet) {
   };
 }
 
-// ExchangeAction is the typed data structure signed by the API key
+// Monotonic nonce counter to prevent collisions within the same millisecond
+let _lastNonce = 0;
+function nextNonce() {
+  const now = Date.now();
+  if (now <= _lastNonce) {
+    _lastNonce += 1;
+  } else {
+    _lastNonce = now;
+  }
+  return _lastNonce;
+}
 const TYPES = {
   ExchangeAction: [
     { name: 'payloadHash', type: 'bytes32' },
@@ -106,7 +116,7 @@ export async function getOrderSignatureHeaders(
   }
 
   const wallet = new ethers.Wallet(apiKeyPrivateKey);
-  const nonce = Date.now(); // must fall within (T-2 days, T+1 day) of block time
+  const nonce = nextNonce();
 
   // 1. Build exactly what the server will re-marshal and compare against.
   const cleanedParams = cleanAndOrderParams(actionType, params);
@@ -205,17 +215,22 @@ async function callSodexApi(method, path, body = null, market = 'spot', requires
   if (!response.ok) {
     let errorDetails = '';
     try {
-      const errJson = await response.json();
-      errorDetails = errJson.message || JSON.stringify(errJson);
+      const rawText = await response.text();
+      try {
+        const errJson = JSON.parse(rawText);
+        errorDetails = errJson.message || rawText;
+      } catch {
+        errorDetails = rawText;
+      }
     } catch {
-      errorDetails = await response.text();
+      errorDetails = 'Failed to read response body';
     }
     throw new Error(`SoDEX API request failed: ${method} ${path} -> Status ${response.status} (${response.statusText}): ${errorDetails}`);
   }
 
   const result = await response.json();
   if (result && typeof result === 'object' && 'code' in result && 'data' in result) {
-    if (result.code !== 200 && result.code !== 201) {
+    if (result.code !== 0 && result.code !== 200 && result.code !== 201) {
       throw new Error(`SoDEX API returned business error: Code ${result.code} - ${result.message || 'Unknown error'}`);
     }
     return result.data;
@@ -234,7 +249,28 @@ async function callSodexApi(method, path, body = null, market = 'spot', requires
  * @returns {Promise<Object>} Ticker details
  */
 export async function getTicker(pair, market = 'spot') {
-  return callSodexApi('GET', `/ticker?pair=${encodeURIComponent(pair)}`, null, market);
+  try {
+    return await callSodexApi('GET', `/ticker?pair=${encodeURIComponent(pair)}`, null, market);
+  } catch (err) {
+    try {
+      const baseToken = pair.split('-')[0].toUpperCase();
+      const binanceSymbol = `${baseToken}USDT`;
+      const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.price) {
+          console.warn(`[WARNING] Using Binance fallback price for ${pair}.`);
+          return {
+            pair,
+            price: parseFloat(data.price).toString()
+          };
+        }
+      }
+    } catch {
+      console.warn(`[WARNING] Binance public API fallback failed for ${binanceSymbol}.`);
+    }
+    throw err;
+  }
 }
 
 /**

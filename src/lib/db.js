@@ -2,11 +2,62 @@ import fs from 'fs';
 import path from 'path';
 import { createClient } from '@libsql/client';
 
+// Manual .env loader for standalone Node scripts
+if (!process.env.TURSO_DATABASE_URL) {
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      content.split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const firstEquals = trimmed.indexOf('=');
+          if (firstEquals !== -1) {
+            const key = trimmed.slice(0, firstEquals).trim();
+            let value = trimmed.slice(firstEquals + 1).trim();
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.slice(1, -1);
+            }
+            process.env[key] = value;
+          }
+        }
+      });
+    }
+  } catch (e) {
+    // Ignore loader error
+  }
+}
+
 // Initializing connection to Turso DB (libSQL) using environment variables
-const client = createClient({
+if (!process.env.TURSO_DATABASE_URL) {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+  if (isProduction) {
+    throw new Error('[FATAL] TURSO_DATABASE_URL is not set. Refusing to start in production without a remote database.');
+  }
+  console.warn('[WARNING] TURSO_DATABASE_URL not set. Using local SQLite fallback.');
+}
+
+const remoteClient = createClient({
   url: process.env.TURSO_DATABASE_URL || 'file:local.db',
   authToken: process.env.TURSO_AUTH_TOKEN || '',
 });
+
+// Initializing local fallback client
+const localClient = createClient({
+  url: 'file:local.db',
+});
+
+// Helper to identify network connectivity failures
+function isNetworkError(err) {
+  if (!err) return false;
+  const msg = String(err.message || err).toLowerCase();
+  const code = String(err.code || '').toLowerCase();
+  return msg.includes('enotfound') || 
+         msg.includes('fetch failed') || 
+         msg.includes('eai_again') || 
+         code === 'enotfound' || 
+         code === 'eai_again';
+}
 
 /**
  * Executes a single SQL query that returns rows.
@@ -16,9 +67,19 @@ const client = createClient({
  */
 export async function query(sql, params = []) {
   try {
-    const res = await client.execute({ sql, args: params });
+    const res = await remoteClient.execute({ sql, args: params });
     return res.rows;
   } catch (err) {
+    if (isNetworkError(err)) {
+      console.warn('[WARNING] Remote Turso connection offline. Falling back to local SQLite DB.');
+      try {
+        const res = await localClient.execute({ sql, args: params });
+        return res.rows;
+      } catch (localErr) {
+        console.error('Local database query error:', localErr, 'SQL:', sql);
+        throw localErr;
+      }
+    }
     console.error('Database query error:', err, 'SQL:', sql);
     throw err;
   }
@@ -32,12 +93,25 @@ export async function query(sql, params = []) {
  */
 export async function execute(sql, params = []) {
   try {
-    const res = await client.execute({ sql, args: params });
+    const res = await remoteClient.execute({ sql, args: params });
     return {
       rowsAffected: res.rowsAffected,
       lastInsertRowid: res.lastInsertRowid
     };
   } catch (err) {
+    if (isNetworkError(err)) {
+      console.warn('[WARNING] Remote Turso connection offline. Falling back to local SQLite DB.');
+      try {
+        const res = await localClient.execute({ sql, args: params });
+        return {
+          rowsAffected: res.rowsAffected,
+          lastInsertRowid: res.lastInsertRowid
+        };
+      } catch (localErr) {
+        console.error('Local database execution error:', localErr, 'SQL:', sql);
+        throw localErr;
+      }
+    }
     console.error('Database execution error:', err, 'SQL:', sql);
     throw err;
   }
@@ -50,8 +124,17 @@ export async function execute(sql, params = []) {
  */
 export async function batch(statements) {
   try {
-    return await client.batch(statements);
+    return await remoteClient.batch(statements);
   } catch (err) {
+    if (isNetworkError(err)) {
+      console.warn('[WARNING] Remote Turso connection offline. Falling back to local SQLite DB.');
+      try {
+        return await localClient.batch(statements);
+      } catch (localErr) {
+        console.error('Local database batch error:', localErr);
+        throw localErr;
+      }
+    }
     console.error('Database batch transaction error:', err);
     throw err;
   }
@@ -83,12 +166,12 @@ export async function initializeDb() {
       }));
       
       await batch(batchStmts);
-      console.log('✅ Database schema migration successfully initialized!');
+      console.log('[SUCCESS] Database schema migration successfully initialized!');
     } else {
-      console.warn(`⚠️ Migration file not found at ${migrationPath}`);
+      console.warn(`[WARNING] Migration file not found at ${migrationPath}`);
     }
   } catch (err) {
-    console.error('❌ Failed to auto-initialize DB:', err);
+    console.error('[ERROR] Failed to auto-initialize DB:', err);
   }
 }
 

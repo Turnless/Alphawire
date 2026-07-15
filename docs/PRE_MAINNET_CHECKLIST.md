@@ -46,6 +46,12 @@ Next.js exposes environment variables starting with `NEXT_PUBLIC_` to the browse
   grep -rnw "src" -e "NEXT_PUBLIC_USER_WALLET"
   ```
 
+### 1.3 Internal API Secret
+The `INTERNAL_API_SECRET` environment variable must be set in production. It protects the POST endpoints `/api/trade` and `/api/stories` from unauthorized trade/story creation. Verify:
+- The secret is at least 24 characters, randomly generated
+- It is set in both the deployment environment and the calling service
+- The `x-internal-api-secret` header is sent with every POST to these endpoints
+
 ---
 
 ## 2. Wallet & Key Separation
@@ -60,6 +66,12 @@ For automated trade execution on SoDEX, the master wallet private key must be de
 ### 2.2 Trade Engine Signing Scope
 - Verify that [trade-engine.js](file:///C:/Users/user/Alpha/src/engine/trade-engine.js) and [sodex.js](file:///C:/Users/user/Alpha/src/lib/sodex.js) only sign orders using the scoped API key private key (`SODEX_API_KEY_PRIVATE_KEY`) and API key name (`SODEX_API_KEY_NAME`).
 - Verify that these API credentials only authorize trade execution (limit/market orders) on the specific pairs required, and do not possess withdrawal or transfer capabilities.
+
+### 2.3 Kill-Switch Fail-Closed
+Verify that `KILL_SWITCH_FAIL_CLOSED` is set to `true` in production. This ensures the system defaults to paused when the Edge Config client encounters errors, rather than failing open and allowing trades.
+
+### 2.4 Production Database Guard
+Verify that the app fails at startup (not silently) when `TURSO_DATABASE_URL` is unset in a production environment. Check that the guard in `src/lib/db.js` is active.
 
 ---
 

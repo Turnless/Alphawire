@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // 1. Mock DB module
 vi.mock('../../lib/db.js', () => ({
   query: vi.fn(),
-  execute: vi.fn()
+  execute: vi.fn(),
+  batch: vi.fn()
 }));
 
 // 2. Mock OpenAI module
@@ -39,8 +40,15 @@ vi.mock('../../lib/sodex.js', () => ({
   getAccountState: vi.fn()
 }));
 
+// 6. Mock Telegram module
+vi.mock('../../lib/telegram.js', () => ({
+  sendMessage: vi.fn().mockResolvedValue(true),
+  sendNarrativeAlert: vi.fn().mockResolvedValue(true),
+  sendDailyDigest: vi.fn().mockResolvedValue(true)
+}));
+
 // Import modules under test and their mocks
-import { query, execute } from '../../lib/db.js';
+import { query, execute, batch } from '../../lib/db.js';
 import { placeOrder, getTicker, fetchAccountBalances, getAccountState } from '../../lib/sodex.js';
 import { detectShift } from '../shift-detector.js';
 import { createBreakingStory } from '../../lib/openai.js';
@@ -48,8 +56,10 @@ import {
   runPreTradeChecks,
   calculatePositionSize,
   checkMarketAndTrade,
-  executeStopLossMonitoring
+  executeStopLossMonitoring,
+  sendDailyDigestAlert
 } from '../trade-engine.js';
+import { sendMessage, sendNarrativeAlert, sendDailyDigest } from '../../lib/telegram.js';
 
 describe('Cinder Trade Execution Engine', () => {
   const originalEnv = { ...process.env };
@@ -489,19 +499,187 @@ describe('Cinder Trade Execution Engine', () => {
         price: '0.00'
       });
 
-      // Verify stories, trades, and narrative_shifts saved to database
-      expect(execute).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO stories'),
-        expect.any(Array)
+      // Verify stories, trades, and narrative_shifts saved to database via batch
+      expect(batch).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ sql: expect.stringContaining('INSERT INTO stories') }),
+          expect.objectContaining({ sql: expect.stringContaining('INSERT INTO trades') }),
+          expect.objectContaining({ sql: expect.stringContaining('INSERT INTO narrative_shifts') })
+        ])
       );
-      expect(execute).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO trades'),
-        expect.arrayContaining(['buy', 'DOGE-USDC', 'market', '20000.0000', '0.15', '0.1380', 'sodex-order-abc', 'filled'])
+    });
+  });
+
+  describe('Telegram Alerts Integration', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('sends narrative shift alert on detected shift', async () => {
+      const detectedShift = {
+        from_narrative: 'NAR_01',
+        to_narrative: 'NAR_02',
+        confidence: 90,
+        signals: JSON.stringify(['flow_inflow'])
+      };
+      detectShift.mockResolvedValueOnce(detectedShift);
+      process.env.AUTO_TRADE_ENABLED = 'false';
+
+      await checkMarketAndTrade();
+
+      expect(sendNarrativeAlert).toHaveBeenCalledWith(detectedShift);
+    });
+
+    it('sends safety check alert on DAILY_LOSS_LIMIT_EXCEEDED risk check failure', async () => {
+      const detectedShift = {
+        from_narrative: 'NAR_01',
+        to_narrative: 'NAR_02',
+        confidence: 90,
+        signals: JSON.stringify(['flow_inflow'])
+      };
+      detectShift.mockResolvedValueOnce(detectedShift);
+
+      // Setup state to trigger DAILY_LOSS_LIMIT_EXCEEDED
+      // Portfolio value is $10,000. Let's make closed trades in last 24h lose $2,000 (which is > 15%).
+      process.env.AUTO_TRADE_ENABLED = 'true';
+      query.mockImplementation(async (sql) => {
+        if (sql.includes('FROM trades \n       WHERE (status = \'stopped\' OR status = \'closed\')')) {
+          return [
+            { fill_price: '10.00', stop_loss_price: '8.00', quantity: '1000', status: 'stopped', closed_at: new Date().toISOString() }
+          ];
+        }
+        return [];
+      });
+
+      await checkMarketAndTrade();
+
+      expect(sendMessage).toHaveBeenCalledWith(null, expect.stringContaining('Safety Check Failed: Drawdown limit reached.'));
+    });
+
+    it('sends trade filled alert on successful trade execution', async () => {
+      const detectedShift = {
+        from_narrative: 'NAR_01',
+        to_narrative: 'NAR_02',
+        confidence: 90,
+        signals: JSON.stringify(['flow_inflow'])
+      };
+      detectShift.mockResolvedValueOnce(detectedShift);
+
+      process.env.AUTO_TRADE_ENABLED = 'true';
+      query.mockResolvedValue([]);
+      getAccountState.mockResolvedValueOnce({
+        balances: [{ asset: 'USDC', free: '10000.00', locked: '0.00' }]
+      });
+      fetchAccountBalances.mockResolvedValueOnce([
+        { asset: 'USDC', free: '10000.00', locked: '0.00' }
+      ]);
+      getTicker.mockResolvedValue({ price: '0.15' });
+
+      placeOrder.mockResolvedValueOnce({
+        orderId: 'sodex-order-abc',
+        status: 'FILLED',
+        price: '0.15'
+      });
+
+      await checkMarketAndTrade();
+
+      expect(sendMessage).toHaveBeenCalledWith(
+        null,
+        expect.stringContaining('[Cinder Trade Filled]')
       );
-      expect(execute).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO narrative_shifts'),
-        expect.any(Array)
+      expect(sendMessage).toHaveBeenCalledWith(
+        null,
+        expect.stringContaining('Asset:</b> DOGE')
       );
+    });
+
+    it('sends trade failed alert on failed trade execution', async () => {
+      const detectedShift = {
+        from_narrative: 'NAR_01',
+        to_narrative: 'NAR_02',
+        confidence: 90,
+        signals: JSON.stringify(['flow_inflow'])
+      };
+      detectShift.mockResolvedValueOnce(detectedShift);
+
+      process.env.AUTO_TRADE_ENABLED = 'true';
+      query.mockResolvedValue([]);
+      getAccountState.mockResolvedValueOnce({
+        balances: [{ asset: 'USDC', free: '10000.00', locked: '0.00' }]
+      });
+      fetchAccountBalances.mockResolvedValueOnce([
+        { asset: 'USDC', free: '10000.00', locked: '0.00' }
+      ]);
+      getTicker.mockResolvedValue({ price: '0.15' });
+
+      placeOrder.mockResolvedValueOnce({
+        status: 'FAILED',
+        reason: 'INSUFFICIENT_FUNDS'
+      });
+
+      await checkMarketAndTrade();
+
+      expect(sendMessage).toHaveBeenCalledWith(
+        null,
+        expect.stringContaining('[Cinder Trade Failed]')
+      );
+    });
+
+    it('sends stop loss trigger alert on trailing stop-loss execution', async () => {
+      query.mockResolvedValueOnce([
+        { id: 't-123', pair: 'BTC-USDC', quantity: '0.1', stop_loss_price: '9.20' }
+      ]);
+      getTicker.mockResolvedValueOnce({ price: '9.1' });
+      placeOrder.mockResolvedValueOnce({ status: 'FILLED' });
+
+      await executeStopLossMonitoring();
+
+      expect(sendMessage).toHaveBeenCalledWith(
+        null,
+        expect.stringContaining('[Cinder Stop-Loss Triggered]')
+      );
+      expect(sendMessage).toHaveBeenCalledWith(
+        null,
+        expect.stringContaining('Asset/Pair:</b> BTC-USDC')
+      );
+    });
+
+    it('sends daily digest alert on calling sendDailyDigestAlert', async () => {
+      process.env.USER_WALLET_ADDRESS = '0x1234567890123456789012345678901234567890';
+      process.env.AUTO_TRADE_ENABLED = 'true';
+      process.env.SODEX_API_KEY_NAME = 'your_api_key_name'; // mock mode trigger
+
+      // Mock DB query for open trades
+      query.mockImplementation(async (sql) => {
+        if (sql.includes("COUNT(*) as count FROM trades WHERE status = 'filled'")) {
+          return [{ count: 1 }];
+        }
+        if (sql.includes("status = 'filled'")) {
+          return [{ pair: 'BTC-USDC', quantity: '0.1', fill_price: '60000.00', stop_loss_price: '55200.00', side: 'buy' }];
+        }
+        if (sql.includes('FROM trades \n         WHERE (status = \'stopped\' OR status = \'closed\')')) {
+          return [];
+        }
+        if (sql.includes('count FROM trades WHERE created_at')) {
+          return [{ count: 0 }];
+        }
+        return [];
+      });
+
+      getTicker.mockResolvedValue({ price: '65000.00' });
+
+      const success = await sendDailyDigestAlert();
+
+      expect(success).toBe(true);
+      expect(sendDailyDigest).toHaveBeenCalledWith(expect.objectContaining({
+        balance: '10000.00',
+        dailyReturn: '+0.00%',
+        dailyTradesCount: 0,
+        circuitBreakerStatus: 'NOMINAL',
+        autoTradeEnabled: true,
+        activeStopLossesCount: 1,
+        positions: expect.any(Array)
+      }));
     });
   });
 });

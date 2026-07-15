@@ -1,18 +1,24 @@
 /**
- * SoSoValue API Client wrapper.
- * Implementation for fetching ETF flows, news feed, sector performance, and coin data.
+ * SoSoValue OpenAPI Client.
+ *
+ * Base URL: https://openapi.sosovalue.com/openapi/v1
+ * Auth:     x-soso-api-key header
+ *
+ * Verified endpoints (2026-07):
+ *   /news                              → news feed (returns { list: [...] })
+ *   /etfs?symbol=BTC&country_code=US   → ETF tickers list
+ *   /etfs/{ticker}/history             → ETF daily flow history
+ *   /currencies/sector-spotlight       → sector + spotlight performance
+ *   /indices                           → SSI index names list
+ *   /indices/{name}/constituents       → index composition
  */
 
-// Sliding window rate limiter configuration (Demo tier allows 20 calls/min)
+// Sliding window rate limiter (Beta tier: 20 calls/min)
 const requestTimestamps = [];
 const LIMIT_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS = 20;
 let queuePromise = Promise.resolve();
 
-/**
- * Handles sliding window rate limiting.
- * Queues requests sequentially and introduces delays if the 20 calls/min limit is hit.
- */
 async function rateLimit() {
   const previousQueue = queuePromise;
   let resolveQueue;
@@ -24,7 +30,6 @@ async function rateLimit() {
 
   try {
     const now = Date.now();
-    // Remove timestamps that fall outside the rolling 60-second window
     while (requestTimestamps.length > 0 && requestTimestamps[0] <= now - LIMIT_WINDOW_MS) {
       requestTimestamps.shift();
     }
@@ -36,7 +41,6 @@ async function rateLimit() {
         console.warn(`[SoSoValue Rate Limit] Limit reached. Waiting ${waitTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
-      // Re-clean timestamps after waiting
       const postWaitNow = Date.now();
       while (requestTimestamps.length > 0 && requestTimestamps[0] <= postWaitNow - LIMIT_WINDOW_MS) {
         requestTimestamps.shift();
@@ -49,16 +53,16 @@ async function rateLimit() {
 }
 
 /**
- * Common request helper with authorization, rate-limiting, and automatic retries.
+ * Core fetch helper with correct auth header and retry logic.
  */
 async function fetchFromSoSoValue(endpoint, params = {}) {
   const apiKey = process.env.SOSOVALUE_API_KEY || '';
-  const baseUrl = process.env.SOSOVALUE_API_URL || 'https://api.sosovalue.xyz/v1';
+  const baseUrl = process.env.SOSOVALUE_API_URL || 'https://openapi.sosovalue.com/openapi/v1';
 
   const url = new URL(`${baseUrl}${endpoint}`);
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      url.searchParams.append(key, value);
+      url.searchParams.append(key, String(value));
     }
   });
 
@@ -66,7 +70,7 @@ async function fetchFromSoSoValue(endpoint, params = {}) {
     'Accept': 'application/json',
   };
   if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
+    headers['x-soso-api-key'] = apiKey;
   }
 
   const maxAttempts = 3;
@@ -83,8 +87,10 @@ async function fetchFromSoSoValue(endpoint, params = {}) {
       }
 
       const data = await response.json();
-      if (data.code !== 200) {
-        throw new Error(data.message || `API returned error code ${data.code}`);
+
+      // SoSoValue OpenAPI returns code: 0 for success (not 200)
+      if (data.code !== undefined && data.code !== 0) {
+        throw new Error(data.message || data.msg || `API returned error code ${data.code}`);
       }
 
       return data.data;
@@ -101,81 +107,156 @@ async function fetchFromSoSoValue(endpoint, params = {}) {
 }
 
 /**
- * Fetches daily ETF net flows for a specific asset (BTC or ETH).
- * @param {string} asset - 'BTC' or 'ETH'
- * @param {string|number} [period] - Optional period filter (e.g. '7d', '30d')
- * @returns {Promise<Array>} Normalized flow records
+ * Fetches ETF daily flow history for a given ticker.
+ * Uses /etfs/{ticker}/history endpoint.
+ * Default ticker: aggregate "ibit" (largest BTC ETF). For ETH pass e.g. "etha".
+ *
+ * @param {string} asset - 'BTC' or 'ETH' (we map to representative tickers)
+ * @param {string|number} [period] - unused (API returns ~20 most recent rows)
+ * @returns {Promise<Array>} Raw ETF history rows from the API
  */
 export async function getETFFlows(asset, period) {
-  let days = 7;
-  if (period) {
-    if (typeof period === 'number') {
-      days = period;
-    } else if (typeof period === 'string') {
-      const match = period.match(/^(\d+)d$/i);
-      if (match) {
-        days = parseInt(match[1], 10);
-      } else {
-        const num = parseInt(period, 10);
-        if (!isNaN(num)) {
-          days = num;
-        }
-      }
+  // Map asset name to a representative ETF ticker
+  const tickerMap = { BTC: 'ibit', ETH: 'etha' };
+  const ticker = tickerMap[asset.toUpperCase()] || asset.toLowerCase();
+
+  const rows = await fetchFromSoSoValue(`/etfs/${ticker}/history`);
+
+  // Normalize to match what scheduler/cacheEtfFlows expects
+  if (!Array.isArray(rows)) return [];
+
+  return rows.map(row => ({
+    date: row.date,
+    netFlow: row.net_inflow || 0,
+    totalNetAssets: row.net_assets || 0,
+    details: {
+      ticker: row.ticker,
+      cum_inflow: row.cum_inflow,
+      currency_share: row.currency_share,
+      prem_dsc: row.prem_dsc,
+      value_traded: row.value_traded,
+      volume: row.volume,
     }
-  }
-  return fetchFromSoSoValue(`/etf/${asset.toLowerCase()}/flow`, { days });
+  }));
 }
 
 /**
- * Fetches historical ETF flow series.
- * @param {string} asset - 'BTC' or 'ETH'
- * @param {number} [days=7] - Number of historical days
- * @returns {Promise<Array>} Historical flow data series
+ * Alias for getETFFlows (kept for backward compatibility).
  */
 export async function getETFHistorical(asset, days = 7) {
-  return fetchFromSoSoValue(`/etf/${asset.toLowerCase()}/flow`, { days });
+  return getETFFlows(asset, days);
 }
 
 /**
- * Fetches AI-curated crypto news items.
- * @param {number} [limit=20] - Max items to return
+ * Fetches AI-curated crypto news.
+ * Uses /news endpoint. Returns data.list array.
+ *
+ * @param {number} [limit=20] - Max items
  * @param {number} [offset=0] - Pagination offset
  * @returns {Promise<Array>} Normalized news items
  */
 export async function getAINewsFeed(limit = 20, offset = 0) {
-  return fetchFromSoSoValue('/news/ai-feed', { limit, offset });
+  const data = await fetchFromSoSoValue('/news', {
+    page: Math.floor(offset / limit) + 1,
+    page_size: limit,
+  });
+
+  // /news returns { list: [...], page, page_size, total }
+  const list = data?.list || data;
+  if (!Array.isArray(list)) return [];
+
+  return list.slice(0, limit).map(item => ({
+    id: item.id,
+    title: item.title || (item.content ? item.content.substring(0, 80) : 'Untitled'),
+    summary: item.content || null,
+    source: item.author || 'SoSoValue',
+    keywords: item.tags || [],
+    sentiment: null,  // API doesn't provide sentiment scores
+    publishedAt: item.release_time
+      ? new Date(Number(item.release_time)).toISOString()
+      : new Date().toISOString(),
+    sourceLink: item.source_link || item.original_link || null,
+    matchedCurrencies: item.matched_currencies || [],
+  }));
 }
 
 /**
- * Fetches performance stats for all sectors (SSI protocol indices).
- * @returns {Promise<Array>} Normalized sector performance data
+ * Fetches sector performance data.
+ * Uses /currencies/sector-spotlight endpoint.
+ *
+ * @returns {Promise<Array>} Normalized sector items with change_pct_24h
  */
 export async function getSectorPerformance() {
-  return fetchFromSoSoValue('/indices/sectors');
+  const data = await fetchFromSoSoValue('/currencies/sector-spotlight');
+
+  if (!data || !data.sector) return [];
+
+  // Combine main sectors and spotlight into a single array
+  const sectors = data.sector.map(s => ({
+    indexName: s.name,
+    displayName: s.name,
+    performance7d: s.change_pct_24h || 0,   // 24h change (best available)
+    performance30d: s.change_pct_24h || 0,   // duplicate for now
+    correlationToBtc: s.marketcap_dom || 0,
+    tokens: [],
+  }));
+
+  return sectors;
 }
 
 /**
- * Fetches composition details of a specific sector index.
- * @param {string} index - e.g., 'AI.ssi'
- * @returns {Promise<Object>} Sector constituents and weights
+ * Fetches SSI index names list.
+ * Uses /indices endpoint.
+ *
+ * @returns {Promise<Array<string>>} List of index names like "ssiAI", "ssiDeFi"
  */
-export async function getSectorComposition(index) {
-  const sectors = await getSectorPerformance();
-  if (Array.isArray(sectors)) {
-    const matched = sectors.find(s => s.indexName.toLowerCase() === index.toLowerCase());
-    if (matched) {
-      return matched;
-    }
-  }
-  return { indexName: index, tokens: [] };
+export async function getIndexList() {
+  return fetchFromSoSoValue('/indices');
 }
 
 /**
- * Fetches price, volume, and market cap for a given coin symbol.
- * @param {string} symbol - e.g., 'BTC' or 'FET'
- * @returns {Promise<Object>} Coin market data
+ * Fetches composition of a specific sector index.
+ * Uses /indices/{name}/constituents endpoint.
+ *
+ * @param {string} indexName - e.g., 'ssiAI'
+ * @returns {Promise<Object>} Index constituents and weights
+ */
+export async function getSectorComposition(indexName) {
+  const constituents = await fetchFromSoSoValue(`/indices/${indexName}/constituents`);
+  return {
+    indexName,
+    tokens: Array.isArray(constituents) ? constituents : [],
+  };
+}
+
+/**
+ * Fetches ETF ticker list for an asset.
+ * Uses /etfs?symbol=BTC&country_code=US endpoint.
+ *
+ * @param {string} symbol - 'BTC' or 'ETH'
+ * @param {string} countryCode - 'US', 'HK', etc.
+ * @returns {Promise<Array>} ETF tickers
+ */
+export async function getETFList(symbol = 'BTC', countryCode = 'US') {
+  return fetchFromSoSoValue('/etfs', { symbol, country_code: countryCode });
+}
+
+/**
+ * Fetches raw live sector and spotlight performance data from SoSoValue.
+ */
+export async function getLiveMarketUpdate() {
+  const data = await fetchFromSoSoValue('/currencies/sector-spotlight');
+  return {
+    sectors: data?.sector || [],
+    spotlight: data?.spotlight || [],
+    fetchedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * getCoinData is not available on the OpenAPI — stub that returns null.
  */
 export async function getCoinData(symbol) {
-  return fetchFromSoSoValue('/coin/data', { symbol });
+  console.warn(`[SoSoValue] getCoinData('${symbol}') is not available on the OpenAPI. Returning null.`);
+  return null;
 }
-

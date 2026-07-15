@@ -102,6 +102,7 @@ export default function BubbleMap({ temperatures = {} }) {
       .append('g')
       .style('cursor', 'pointer')
       .on('click', (event, d) => {
+        event.stopPropagation();
         setSelectedNode(d);
       })
       .on('mouseover', function(event, d) {
@@ -215,6 +216,7 @@ export default function BubbleMap({ temperatures = {} }) {
 
     return () => {
       simulation.stop();
+      svg.selectAll('*').remove();
     };
   }, [temperatures]);
 
@@ -232,13 +234,18 @@ export default function BubbleMap({ temperatures = {} }) {
   }
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div 
+      ref={containerRef} 
+      onClick={() => setSelectedNode(null)}
+      style={{ width: '100%', height: '100%', position: 'relative' }}
+    >
       <svg ref={svgRef} className="bubble-map-svg"></svg>
 
       {/* Selected Node Tooltip Overlay */}
       {selectedNode && (
         <div 
           className="clay-glass" 
+          onClick={(e) => e.stopPropagation()}
           style={{
             position: 'absolute',
             bottom: 'var(--space-md)',
@@ -248,7 +255,12 @@ export default function BubbleMap({ temperatures = {} }) {
             borderRadius: '12px',
             fontSize: '0.825rem',
             color: 'var(--color-linen)',
-            zIndex: 10
+            zIndex: 10,
+            background: 'rgba(18, 18, 18, 0.96)',
+            border: '1px solid rgba(236, 223, 204, 0.15)',
+            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-xs)' }}>

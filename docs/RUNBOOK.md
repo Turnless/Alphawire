@@ -23,6 +23,8 @@ Send the following message to your configured Telegram Bot chat:
    ```
 * **Expected Result:** The next pre-trade checks will immediately halt execution.
 
+**Note:** If Edge Config is unreachable, the kill-switch now defaults to paused (trades halted). This is the fail-closed behavior. See `KILL_SWITCH_FAIL_CLOSED` in Environment Variables.
+
 ### Method 3: Environment Override (Fallback)
 1. In your Vercel or Railway dashboard, change the environment variable:
    ```env

@@ -18,11 +18,47 @@ const NARRATIVE_NAMES = {
   NAR_08: 'Black Swan',
 };
 
+// Strip HTML tags from raw API content
+function stripHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/?[^>]+(>|$)/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .trim();
+}
+
+// Escape HTML special characters to prevent XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getTruncatedSummary(text, maxLength = 120) {
+  if (!text) return '';
+  const clean = stripHtml(text);
+  if (clean.length <= maxLength) return clean;
+  return clean.substring(0, maxLength) + '...';
+}
+
 // Custom Markdown Parser
 function parseMarkdown(text) {
   if (!text) return '';
   
-  let html = text;
+  // Strip any raw HTML tags first (SoSoValue news often contains HTML)
+  let html = stripHtml(text);
+  // Escape HTML entities to prevent XSS from markdown content
+  html = escapeHtml(html);
   html = html.replace(/\r\n/g, '\n');
   
   // Tables
@@ -169,9 +205,21 @@ function getStoryGradient(id, type) {
     color1 = 'rgba(212, 168, 83, 0.35)'; // wire gold
   } else if (type === 'pulse') {
     color1 = 'rgba(96, 165, 250, 0.35)'; // data blue
+  } else if (type === 'news') {
+    color1 = 'rgba(52, 211, 153, 0.30)'; // emerald green
   }
   
   return `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
+}
+
+function getTypeBadgeLabel(type) {
+  switch (type) {
+    case 'breaking': return 'Breaking Alert';
+    case 'deep_dive': return 'Deep Dive';
+    case 'pulse': return 'Market Pulse';
+    case 'news': return 'Live News';
+    default: return 'Update';
+  }
 }
 
 export default function StoryCard({ story, isWide = false }) {
@@ -275,10 +323,16 @@ export default function StoryCard({ story, isWide = false }) {
   };
 
   const renderNarrativeTags = () => {
-    if (!narrative_state) return null;
-    const parsedState = typeof narrative_state === 'string' 
-      ? JSON.parse(narrative_state) 
-      : narrative_state;
+    if (!narrative_state || (typeof narrative_state === 'object' && Object.keys(narrative_state).length === 0)) return null;
+    let parsedState;
+    try {
+      parsedState = typeof narrative_state === 'string' 
+        ? JSON.parse(narrative_state) 
+        : narrative_state;
+    } catch (e) {
+      return null;
+    }
+    if (!parsedState || Object.keys(parsedState).length === 0) return null;
 
     const getTempColor = (t) => {
       if (t >= 80) return 'var(--color-shift-red)';
@@ -339,14 +393,14 @@ export default function StoryCard({ story, isWide = false }) {
             
             <div className="edge-cover-card-body">
               <div className="edge-card-source">
-                <span className="edge-card-source-dot" style={{ backgroundColor: type === 'breaking' ? 'var(--color-shift-red)' : 'var(--color-wire-gold)' }} />
-                <span>🔥 CINDER WIRE</span>
+                <span className="edge-card-source-dot" style={{ backgroundColor: type === 'breaking' ? 'var(--color-shift-red)' : type === 'news' ? 'var(--color-pulse-green)' : 'var(--color-wire-gold)' }} />
+                <span>{type === 'news' ? `[FEED] ${story.source || 'SoSoValue'}` : '[CINDER] WIRE'}</span>
                 <span>•</span>
                 <span>{relativeTime}</span>
               </div>
               
               <h2 className="edge-cover-title">{title}</h2>
-              {summary && <p className="edge-cover-desc">{summary}</p>}
+              {summary && <p className="edge-cover-desc">{getTruncatedSummary(summary, 180)}</p>}
               
               {renderNarrativeTags()}
             </div>
@@ -368,21 +422,21 @@ export default function StoryCard({ story, isWide = false }) {
                   padding: '2px 8px',
                   borderRadius: '10px'
                 }}>
-                  {type === 'breaking' ? 'Breaking Alert' : type === 'deep_dive' ? 'Deep Dive' : 'Market Pulse'}
+                  {getTypeBadgeLabel(type)}
                 </span>
               </div>
             </div>
 
             <div className="edge-card-body">
               <div className="edge-card-source">
-                <span className="edge-card-source-dot" style={{ backgroundColor: type === 'breaking' ? 'var(--color-shift-red)' : 'var(--color-wire-gold)' }} />
-                <span>🔥 CINDER INTEL</span>
+                <span className="edge-card-source-dot" style={{ backgroundColor: type === 'breaking' ? 'var(--color-shift-red)' : type === 'news' ? 'var(--color-pulse-green)' : 'var(--color-wire-gold)' }} />
+                <span>{type === 'news' ? `[FEED] ${story.source || 'SoSoValue'}` : '[CINDER] INTEL'}</span>
                 <span>•</span>
                 <span>{relativeTime}</span>
               </div>
 
               <h3 className="edge-card-title">{title}</h3>
-              {summary && <p className="edge-card-desc">{summary}</p>}
+              {summary && <p className="edge-card-desc">{getTruncatedSummary(summary, 120)}</p>}
               {renderNarrativeTags()}
             </div>
           </>
@@ -412,12 +466,12 @@ export default function StoryCard({ story, isWide = false }) {
             </button>
           </div>
 
-          <a href={`/story/${id}`} onClick={handleToggle} className="story-read-link" style={{ fontSize: '0.78rem', color: 'var(--color-wire-gold)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+          <Link href={`/story/${id}`} onClick={handleToggle} className="story-read-link" style={{ fontSize: '0.78rem', color: 'var(--color-wire-gold)', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
             <span>Read Report</span>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </a>
+          </Link>
         </div>
       </article>
 
@@ -460,9 +514,7 @@ export default function StoryCard({ story, isWide = false }) {
                 <div className="story-meta-right">
                   <span className={`story-type-badge ${type}`}>
                     <span className="story-badge-dot" />
-                    {type === 'breaking' && 'Breaking'}
-                    {type === 'deep_dive' && 'Deep Dive'}
-                    {type === 'pulse' && 'Market Pulse'}
+                    {getTypeBadgeLabel(type)}
                   </span>
                   <time className="story-date" title={dateFormatted}>{relativeTime}</time>
                 </div>
@@ -470,7 +522,7 @@ export default function StoryCard({ story, isWide = false }) {
 
               <div className="story-modal-scroll-area">
                 <h1 className="story-modal-title">{title}</h1>
-                {summary && <p className="story-modal-subhead">{summary}</p>}
+                {summary && <p className="story-modal-subhead">{getTruncatedSummary(summary, 300)}</p>}
 
                 {type === 'breaking' && chart_data?.execution && (
                   <div className="clay-glass breaking-execution-banner" style={{ margin: '20px 0', borderLeft: '3px solid var(--color-shift-red)' }}>

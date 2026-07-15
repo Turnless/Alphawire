@@ -21,6 +21,8 @@ To maintain visual and technical consistency across all Cinder user interfaces a
 
 A daily loss circuit breaker trip is indicated by the `DAILY_LOSS_LIMIT_EXCEEDED` pre-trade check gate failing.
 
+**Note:** The circuit breaker also trips when the calculated portfolio value is zero or negative, regardless of the percentage threshold. This catches cases where the wallet is effectively drained.
+
 ### Step 1.1: Check Drawdown Logs
 To diagnose the trip, query the SQLite/Turso database for all trades stopped or closed in the last 24 hours:
 ```sql

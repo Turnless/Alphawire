@@ -53,9 +53,14 @@ export default function Timeline({ shifts = [] }) {
           });
 
           const isHighConfidence = shift.confidence >= 80;
-          const signalsParsed = typeof shift.signals === 'string' 
-            ? JSON.parse(shift.signals) 
-            : (shift.signals || []);
+          let signalsParsed = [];
+          try {
+            signalsParsed = typeof shift.signals === 'string' 
+              ? JSON.parse(shift.signals) 
+              : (shift.signals || []);
+          } catch {
+            signalsParsed = [];
+          }
 
           return (
             <motion.div

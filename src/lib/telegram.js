@@ -4,25 +4,65 @@
  */
 
 import { NARRATIVES } from '../engine/narrative.js';
+import { query } from './db.js';
 
 /**
- * Sends a raw text message to a specific Telegram chat.
- * @param {string} [chatId] - Target Telegram chat/channel ID (defaults to process.env.TELEGRAM_CHAT_ID)
+ * Sends a raw text message to a specific Telegram chat or broadcasts to all subscribers.
+ * @param {string} [chatId] - Target Telegram chat/channel ID (if empty, broadcasts to admin and all subscribers)
  * @param {string} text - Message content
  * @returns {Promise<boolean>} Success status
  */
 export async function sendMessage(chatId, text) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const targetChatId = chatId || process.env.TELEGRAM_CHAT_ID;
-
-  if (!token || !targetChatId) {
-    console.warn("⚠️ Telegram Bot Token or Chat ID is missing from environment variables.");
+  if (!token) {
+    console.warn("[WARNING] Telegram Bot Token is missing from environment variables.");
     return false;
   }
 
-  // Stubs/fallback checks for dummy tokens in dev mode to prevent crashes
+  // If a specific chatId is provided, send to that chat ID only
+  if (chatId) {
+    return await sendRawMessage(chatId, token, text);
+  }
+
+  // Otherwise, broadcast to admin and all subscribers
+  const adminChatId = process.env.TELEGRAM_CHAT_ID;
+  const targets = new Set();
+  if (adminChatId) {
+    targets.add(String(adminChatId));
+  }
+
+  try {
+    const rows = await query('SELECT chat_id FROM telegram_subscriptions');
+    if (rows && rows.length > 0) {
+      rows.forEach(row => {
+        if (row.chat_id) {
+          targets.add(String(row.chat_id));
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[ERROR] Failed to query Telegram subscriptions:', err);
+  }
+
+  if (targets.size === 0) {
+    console.warn("[WARNING] No targets (admin or subscribers) found for Telegram alert.");
+    return false;
+  }
+
+  let allSuccess = true;
+  for (const targetId of targets) {
+    const ok = await sendRawMessage(targetId, token, text);
+    if (!ok) allSuccess = false;
+  }
+  return allSuccess;
+}
+
+/**
+ * Helper to post message directly to Telegram Bot API.
+ */
+async function sendRawMessage(targetChatId, token, text) {
   if (token === 'your_telegram_bot_token' || targetChatId === 'your_chat_id') {
-    console.log("ℹ️ Telegram bot is running in dry-run/stub mode because default env values are present.");
+    console.log(`[INFO] Telegram bot is running in dry-run/stub mode for chat ID ${targetChatId}.`);
     return true;
   }
 
@@ -41,11 +81,11 @@ export async function sendMessage(chatId, text) {
 
     const data = await response.json();
     if (!data.ok) {
-      console.error("❌ Telegram API returned an error:", data.description);
+      console.error(`[ERROR] Telegram API returned an error for chat ${targetChatId}:`, data.description);
     }
     return data.ok === true;
   } catch (error) {
-    console.error("❌ Error sending Telegram message:", error);
+    console.error(`[ERROR] Error sending Telegram message to ${targetChatId}:`, error);
     return false;
   }
 }
@@ -76,7 +116,7 @@ export async function sendNarrativeAlert(shiftData) {
     }
   }
 
-  const text = `🚨 <b>[Cinder Alert] Narrative Regime Shift Detected</b> 🚨\n\n` +
+  const text = `[ALERT] <b>[Cinder Alert] Narrative Regime Shift Detected</b>\n\n` +
     `<b>From:</b> ${fromName} (${shiftData.from_narrative || 'N/A'})\n` +
     `<b>To:</b> ${toName} (${shiftData.to_narrative || 'N/A'})\n` +
     `<b>Confidence:</b> ${confidence}%\n\n` +
@@ -115,13 +155,13 @@ export async function sendDailyDigest(portfolioSummary) {
     positionsStr = '<i>No active positions.</i>';
   }
 
-  const text = `📊 <b>[Cinder Daily Digest] Portfolio & Risk Status</b> 📊\n\n` +
+  const text = `[STATS] <b>[Cinder Daily Digest] Portfolio & Risk Status</b>\n\n` +
     `<b>Portfolio Summary:</b>\n` +
     `• Total Balance: <code>$${balance}</code>\n` +
     `• Daily Performance: <code>${pnl}</code>\n` +
     `• Executed Trades (24h): <code>${tradesCount}</code>\n\n` +
-    `💼 <b>Open Positions:</b>\n${positionsStr}\n\n` +
-    `🛡️ <b>Risk Status:</b>\n` +
+    `[PORTFOLIO] <b>Open Positions:</b>\n${positionsStr}\n\n` +
+    `[RISK] <b>Risk Status:</b>\n` +
     `• Stop-Losses Active: <code>${stopLossesCount}</code>\n` +
     `• Daily Loss Limit: <code>${circuitBreaker}</code>\n` +
     `• Auto-Trading Switch: <code>${autoTrade}</code>\n\n` +

@@ -6,46 +6,24 @@ export default function LiveIndicator() {
   const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
-    let eventSource;
-    let reconnectTimeout;
+    let interval;
     let isMounted = true;
 
-    function connect() {
-      if (!isMounted) return;
-
+    async function checkLive() {
       try {
-        eventSource = new EventSource('/api/stories/stream');
-
-        eventSource.onopen = () => {
-          if (isMounted) setIsLive(true);
-        };
-
-        eventSource.onerror = (err) => {
-          if (isMounted) {
-            setIsLive(false);
-            eventSource.close();
-            // Try reconnecting after 5 seconds
-            reconnectTimeout = setTimeout(connect, 5000);
-          }
-        };
-      } catch (e) {
-        if (isMounted) {
-          setIsLive(false);
-          reconnectTimeout = setTimeout(connect, 5000);
-        }
+        const res = await fetch('/api/stories/stream', { method: 'HEAD' });
+        if (isMounted) setIsLive(res.ok);
+      } catch {
+        if (isMounted) setIsLive(false);
       }
     }
 
-    connect();
+    checkLive();
+    interval = setInterval(checkLive, 15000);
 
     return () => {
       isMounted = false;
-      if (eventSource) {
-        eventSource.close();
-      }
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
+      clearInterval(interval);
     };
   }, []);
 

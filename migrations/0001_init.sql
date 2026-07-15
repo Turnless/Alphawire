@@ -85,6 +85,13 @@ CREATE TABLE IF NOT EXISTS sector_data (
     fetched_at      DATETIME NOT NULL
 );
 
+-- Wallet balances for CNDR faucet linking
+CREATE TABLE IF NOT EXISTS wallet_balances (
+    address         TEXT PRIMARY KEY,
+    balance         TEXT NOT NULL,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_stories_type ON stories(type);
 CREATE INDEX IF NOT EXISTS idx_stories_published ON stories(published_at DESC);
@@ -92,3 +99,18 @@ CREATE INDEX IF NOT EXISTS idx_narrative_history_time ON narrative_history(recor
 CREATE INDEX IF NOT EXISTS idx_narrative_history_id ON narrative_history(narrative_id);
 CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status);
 CREATE INDEX IF NOT EXISTS idx_etf_flows_date ON etf_flows(asset, date);
+CREATE INDEX IF NOT EXISTS idx_wallet_balances_address ON wallet_balances(address);
+
+-- Telegram alerts subscriptions
+CREATE TABLE IF NOT EXISTS telegram_subscriptions (
+    chat_id         TEXT PRIMARY KEY,
+    wallet_address  TEXT,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Telegram wallet authentication tokens
+CREATE TABLE IF NOT EXISTS telegram_auth_tokens (
+    token           TEXT PRIMARY KEY,
+    wallet_address  TEXT NOT NULL,
+    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,18 +1,26 @@
 import cron from 'node-cron';
 import { getETFFlows, getAINewsFeed, getSectorPerformance } from './sosovalue.js';
 import { updateNarrativeTemperatures } from '../engine/narrative.js';
-import { checkMarketAndTrade, executeStopLossMonitoring } from '../engine/trade-engine.js';
+import { checkMarketAndTrade, executeStopLossMonitoring, sendDailyDigestAlert } from '../engine/trade-engine.js';
 import { query, execute } from './db.js';
-import { generateMarketPulse, generateDailyDeepDive } from './openai.js';
+import { generateMarketPulse, generateDailyDeepDive, classifyNewsBatch, generateStoryFromNewsItem, refineAllNews } from './openai.js';
 
-console.log('⏰ Initializing Cinder Scheduler...');
+console.log('[SCHEDULER] Initializing Cinder Scheduler...');
 
 /**
  * Caches news items from SoSoValue AI news feed into local database.
  */
 async function cacheNewsItems(news) {
   if (!news || news.length === 0) return;
-  for (const item of news) {
+
+  let refinedNews = news;
+  try {
+    refinedNews = await refineAllNews(news);
+  } catch (err) {
+    console.error('Failed to refine news items:', err);
+  }
+
+  for (const item of refinedNews) {
     await execute(
       `INSERT INTO news_items (id, title, summary, source, keywords, sentiment, fetched_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -86,7 +94,7 @@ async function cacheSectors(sectors) {
  * Fetches latest indicators and narrative states, invokes OpenAI, and publishes a Cinder Market Pulse story.
  */
 export async function generateAndPublishMarketPulse() {
-  console.log('📰 Generating 4-hourly Cinder Market Pulse story...');
+  console.log('[PUBLISH] Generating 4-hourly Cinder Market Pulse story...');
   try {
     const btcFlows = await getETFFlows('BTC', 1);
     const ethFlows = await getETFFlows('ETH', 1);
@@ -199,9 +207,9 @@ export async function generateAndPublishMarketPulse() {
     if (global.broadcastStory) {
       global.broadcastStory(newStory);
     }
-    console.log('✅ Cinder Market Pulse story successfully published!');
+    console.log('[SUCCESS] Cinder Market Pulse story successfully published!');
   } catch (err) {
-    console.error('❌ Failed to generate and publish Market Pulse story:', err);
+    console.error('[ERROR] Failed to generate and publish Market Pulse story:', err);
   }
 }
 
@@ -209,7 +217,7 @@ export async function generateAndPublishMarketPulse() {
  * Fetches 7d metrics, AI sentiment, and narrative state, invokes OpenAI, and publishes a Cinder Daily Deep Dive report.
  */
 export async function generateAndPublishDailyDeepDive() {
-  console.log('📰 Generating Cinder Daily Deep Dive story...');
+  console.log('[PUBLISH] Generating Cinder Daily Deep Dive story...');
   try {
     const btcHistorical = await query(
       `SELECT date, net_flow FROM etf_flows WHERE asset = 'BTC' ORDER BY date DESC LIMIT 7`
@@ -320,9 +328,9 @@ export async function generateAndPublishDailyDeepDive() {
     if (global.broadcastStory) {
       global.broadcastStory(newStory);
     }
-    console.log('✅ Cinder Daily Deep Dive story successfully published!');
+    console.log('[SUCCESS] Cinder Daily Deep Dive story successfully published!');
   } catch (err) {
-    console.error('❌ Failed to generate and publish Daily Deep Dive story:', err);
+    console.error('[ERROR] Failed to generate and publish Daily Deep Dive story:', err);
   }
 }
 
@@ -330,129 +338,250 @@ export async function generateAndPublishDailyDeepDive() {
  * Runs an initial sync to populate the database with real news feed data on boot.
  */
 export async function runInitialSync() {
-  console.log('🔄 Running initial sync to populate real news feed...');
+  console.log('[SYNC] Running initial sync to populate real news feed...');
   try {
     const news = await getAINewsFeed(50);
     if (news && news.length > 0) {
       await cacheNewsItems(news);
-      console.log(`✅ Cached ${news.length} real news items in database`);
+      console.log(`[SUCCESS] Cached ${news.length} real news items in database`);
     }
 
     const btcFlows = await getETFFlows('BTC', 7);
     const ethFlows = await getETFFlows('ETH', 7);
     await cacheEtfFlows(btcFlows, 'BTC');
     await cacheEtfFlows(ethFlows, 'ETH');
-    console.log('✅ Cached ETF flows in database');
+    console.log('[SUCCESS] Cached ETF flows in database');
 
     const sectors = await getSectorPerformance();
     await cacheSectors(sectors);
-    console.log('✅ Cached sector performance in database');
+    console.log('[SUCCESS] Cached sector performance in database');
 
-    console.log('🌡️ Updating narrative temperatures...');
+    console.log('[TEMP] Updating narrative temperatures...');
     const temps = await updateNarrativeTemperatures();
-    console.log('🌡️ Current narrative temperatures:', temps);
+    console.log('[TEMP] Current narrative temperatures:', temps);
 
-    // Only generate first real stories if the stories table has no real scheduler stories
-    const existingStories = await query(
-      `SELECT COUNT(*) as count FROM stories WHERE id LIKE 'pulse_%' OR id LIKE 'deep_%'`
-    );
-    if (existingStories[0]?.count === 0) {
-      console.log('📰 Generating first real Market Pulse & Daily Deep Dive stories from live data...');
-      await generateAndPublishMarketPulse();
-      await generateAndPublishDailyDeepDive();
-    }
+    // Generate first real stories from live data
+    console.log('[PUBLISH] Generating first real Market Pulse & Daily Deep Dive stories from live data...');
+    await generateAndPublishMarketPulse();
+    await generateAndPublishDailyDeepDive();
   } catch (err) {
-    console.error('❌ Failed running initial sync:', err);
+    console.error('[ERROR] Failed running initial sync:', err);
+  }
+}
+
+
+/**
+ * Prunes historical news items and ETF flows older than their TTL.
+ */
+export async function runPruningCycle() {
+  console.log('[INFO] Initiating database cache pruning cycle...');
+  try {
+    const newsTtlHours = Number(process.env.NEWS_TTL_HOURS) || 48;
+    const flowsTtlHours = Number(process.env.ETF_FLOWS_TTL_HOURS) || 24;
+    const newsResult = await execute(`DELETE FROM news_items WHERE fetched_at < datetime('now', '-${newsTtlHours} hours')`);
+    const flowsResult = await execute(`DELETE FROM etf_flows WHERE fetched_at < datetime('now', '-${flowsTtlHours} hours')`);
+
+    console.log(`[SUCCESS] Database cache successfully pruned. News affected: ${newsResult.rowsAffected}, Flows affected: ${flowsResult.rowsAffected}`);
+  } catch (err) {
+    console.error('[ERROR] Failed running database cache pruning cycle:', err);
   }
 }
 
 // 1. Fetch AI news feed every hour (0 * * * *)
+
 const hourlyNewsJob = cron.schedule('0 * * * *', async () => {
-  console.log('⏰ Running hourly news fetch and narrative intelligence cycle...');
+  console.log('[SCHEDULER] Running hourly news fetch and narrative intelligence cycle...');
   try {
     const news = await getAINewsFeed(50);
     await cacheNewsItems(news);
-    console.log(`📰 Fetched and cached news feed. Items: ${news ? news.length : 0}`);
+    console.log(`[PUBLISH] Fetched and cached news feed. Items: ${news ? news.length : 0}`);
+
+    if (news && news.length > 0) {
+      console.log('[AI] Classifying news items via OpenAI...');
+      try {
+        const classifications = await classifyNewsBatch(news);
+        
+        // Gather current market context
+        const btcFlows = await getETFFlows('BTC', 1);
+        const ethFlows = await getETFFlows('ETH', 1);
+        const btcFlowStr = btcFlows && btcFlows[0] ? `$${(btcFlows[0].netFlow / 1e6).toFixed(1)}M` : 'N/A';
+        const ethFlowStr = ethFlows && ethFlows[0] ? `$${(ethFlows[0].netFlow / 1e6).toFixed(1)}M` : 'N/A';
+        const sectors = await getSectorPerformance();
+        
+        const currentTemps = {};
+        const latestTemps = await query(
+          `SELECT nh.narrative_id, nh.temperature
+           FROM narrative_history nh
+           INNER JOIN (
+             SELECT narrative_id, MAX(recorded_at) as max_recorded
+             FROM narrative_history
+             GROUP BY narrative_id
+           ) latest ON nh.narrative_id = latest.narrative_id AND nh.recorded_at = latest.max_recorded`
+        );
+        for (const t of latestTemps) {
+          currentTemps[t.narrative_id] = t.temperature;
+        }
+
+        const marketContext = {
+          btcFlow: btcFlowStr,
+          ethFlow: ethFlowStr,
+          sectorPerf: sectors ? sectors.map(s => ({ sector: s.displayName, change_24h: s.performance7d })) : [],
+          temps: currentTemps
+        };
+
+        for (const item of news) {
+          const clsType = classifications[item.id] || 'news';
+          if (clsType !== 'news') {
+            const storyId = `${clsType}_${item.id}`;
+            // Check if already exists in stories
+            const existing = await query('SELECT 1 FROM stories WHERE id = ?', [storyId]);
+            if (existing.length === 0) {
+              console.log(`[AI] Promoting high-signal news "${item.title}" to ${clsType.toUpperCase()} story...`);
+              const body = await generateStoryFromNewsItem(clsType, item, marketContext);
+              
+              let title = item.title;
+              const lines = body.split('\n');
+              const firstLine = lines[0]?.trim() || '';
+              if (firstLine.startsWith('#')) {
+                title = firstLine.replace(/^#+\s*/, '');
+              }
+
+              const summary = item.summary || item.title;
+              const publishedAt = item.publishedAt || new Date().toISOString();
+
+              await execute(
+                `INSERT INTO stories (id, type, title, body, summary, chart_data, narrative_state, published_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  storyId,
+                  clsType,
+                  title,
+                  body,
+                  summary,
+                  JSON.stringify({ etf_flows: [], sectors: [] }),
+                  JSON.stringify(currentTemps),
+                  publishedAt
+                ]
+              );
+
+              // Broadcast if SSE is active
+              if (global.broadcastStory) {
+                global.broadcastStory({
+                  id: storyId,
+                  type: clsType,
+                  title,
+                  body,
+                  summary,
+                  chart_data: { etf_flows: [], sectors: [] },
+                  narrative_state: currentTemps,
+                  published_at: publishedAt
+                });
+              }
+            }
+          }
+        }
+      } catch (clsErr) {
+        console.error('Error during OpenAI news classification/promotion:', clsErr);
+      }
+    }
     
-    console.log('🌡️ Updating narrative temperatures...');
+    console.log('[TEMP] Updating narrative temperatures...');
     const temps = await updateNarrativeTemperatures();
-    console.log('🌡️ Current narrative temperatures:', temps);
+    console.log('[TEMP] Current narrative temperatures:', temps);
     
-    console.log('🚨 Running shift detection and trading check...');
+    console.log('[ALERT] Running shift detection and trading check...');
     await checkMarketAndTrade();
   } catch (error) {
-    console.error('❌ Error in hourly news and narrative cycle:', error);
+    console.error('[ERROR] Error in hourly news and narrative cycle:', error);
   }
 });
 
 // 2. Fetch ETF flows every 4 hours (0 */4 * * *)
 const etfFlowsJob = cron.schedule('0 */4 * * *', async () => {
-  console.log('⏰ Running 4-hourly ETF flows fetch...');
+  console.log('[SCHEDULER] Running 4-hourly ETF flows fetch...');
   try {
     const btcFlows = await getETFFlows('BTC');
     const ethFlows = await getETFFlows('ETH');
     await cacheEtfFlows(btcFlows, 'BTC');
     await cacheEtfFlows(ethFlows, 'ETH');
-    console.log(`📊 ETF flows fetched. BTC records: ${btcFlows ? btcFlows.length : 0}, ETH records: ${ethFlows ? ethFlows.length : 0}`);
+    console.log(`[STATS] ETF flows fetched. BTC records: ${btcFlows ? btcFlows.length : 0}, ETH records: ${ethFlows ? ethFlows.length : 0}`);
   } catch (error) {
-    console.error('❌ Error in ETF flows fetch job:', error);
+    console.error('[ERROR] Error in ETF flows fetch job:', error);
   }
 });
 
 // 3. Fetch Sector performance every 4 hours (0 */4 * * *)
 const sectorPerformanceJob = cron.schedule('0 */4 * * *', async () => {
-  console.log('⏰ Running 4-hourly sector performance fetch...');
+  console.log('[SCHEDULER] Running 4-hourly sector performance fetch...');
   try {
     const sectors = await getSectorPerformance();
     await cacheSectors(sectors);
-    console.log(`🧬 Sector performance fetched. Records: ${sectors ? sectors.length : 0}`);
+    console.log(`[SECTORS] Sector performance fetched. Records: ${sectors ? sectors.length : 0}`);
   } catch (error) {
-    console.error('❌ Error in sector performance fetch job:', error);
+    console.error('[ERROR] Error in sector performance fetch job:', error);
   }
 });
 
 // 4. Generate Market Pulse every 4 hours (0 */4 * * *)
 const marketPulseJob = cron.schedule('0 */4 * * *', async () => {
-  console.log('⏰ Running 4-hourly Market Pulse generation trigger...');
+  console.log('[SCHEDULER] Running 4-hourly Market Pulse generation trigger...');
   try {
     await generateAndPublishMarketPulse();
   } catch (error) {
-    console.error('❌ Error in Market Pulse trigger job:', error);
+    console.error('[ERROR] Error in Market Pulse trigger job:', error);
   }
 });
 
 // 5. Generate Daily Deep Dive daily at 08:00 UTC (0 8 * * *)
 const dailyDeepDiveJob = cron.schedule('0 8 * * *', async () => {
-  console.log('⏰ Running daily Deep Dive generation trigger (08:00 UTC)...');
+  console.log('[SCHEDULER] Running daily Deep Dive generation trigger (08:00 UTC)...');
   try {
     await generateAndPublishDailyDeepDive();
+    console.log('[SCHEDULER] Triggering Telegram Daily Digest Alert...');
+    await sendDailyDigestAlert();
   } catch (error) {
-    console.error('❌ Error in Daily Deep Dive trigger job:', error);
+    console.error('[ERROR] Error in Daily Deep Dive trigger job:', error);
   }
 });
 
 // 6. Monitor Stop Losses every 5 minutes (*/5 * * * *)
 const stopLossMonitoringJob = cron.schedule('*/5 * * * *', async () => {
-  console.log('⏰ Running 5-minute stop-loss monitoring job...');
+  console.log('[SCHEDULER] Running 5-minute stop-loss monitoring job...');
   try {
     await executeStopLossMonitoring();
   } catch (error) {
-    console.error('❌ Error in stop-loss monitoring job:', error);
+    console.error('[ERROR] Error in stop-loss monitoring job:', error);
   }
 });
 
-// Start all jobs
-hourlyNewsJob.start();
-etfFlowsJob.start();
-sectorPerformanceJob.start();
-marketPulseJob.start();
-dailyDeepDiveJob.start();
-stopLossMonitoringJob.start();
 
-// Run the initial sync in the background
-runInitialSync();
+// 7. Prune cache every 24 hours at 00:00 UTC (0 0 * * *)
+const pruningJob = cron.schedule('0 0 * * *', async () => {
+  console.log('[INFO] Running 24-hourly database pruning job...');
+  try {
+    await runPruningCycle();
+  } catch (error) {
+    console.error('[ERROR] Error in database pruning job:', error);
+  }
+});
 
-console.log('⏰ All cron schedules successfully started!');
+if (process.env.NODE_ENV !== 'test') {
+  // Start all jobs
+  hourlyNewsJob.start();
+  etfFlowsJob.start();
+  sectorPerformanceJob.start();
+  marketPulseJob.start();
+  dailyDeepDiveJob.start();
+  stopLossMonitoringJob.start();
+  pruningJob.start();
+
+  // Run the initial sync in the background
+  runInitialSync();
+
+  console.log('[SCHEDULER] All cron schedules successfully started!');
+} else {
+  console.log('[SCHEDULER] Running in test environment - cron jobs and initial sync disabled on import');
+}
 
 const scheduler = {
   hourlyNewsJob,
@@ -461,7 +590,9 @@ const scheduler = {
   marketPulseJob,
   dailyDeepDiveJob,
   stopLossMonitoringJob,
-  runInitialSync
+  pruningJob,
+  runInitialSync,
+  runPruningCycle
 };
 
 export default scheduler;

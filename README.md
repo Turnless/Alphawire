@@ -195,29 +195,41 @@ cp .env.example .env
 # SoSoValue API
 SOSOVALUE_API_KEY=your_sosovalue_api_key
 
-#TURSO_API
-TURSO_DATABASE_URL=
-TURSO_AUTH_TOKEN=
+# Turso Database
+TURSO_DATABASE_URL=libsql://your-db.turso.io
+TURSO_AUTH_TOKEN=your_turso_auth_token
 
 # SoDEX API
 SODEX_API_KEY_NAME=your_api_key_name
-SODEX_API_KEY_NAME_PRIVATE_KEY=your_api_key_name_private_key
-SODEX_PRIVATE_KEY=your_evm_private_key
-SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1
+SODEX_API_KEY_PRIVATE_KEY=your_api_key_private_key
+SODEX_MASTER_PRIVATE_KEY=your_master_private_key
+SODEX_API_BASE_URL=https://testnet-gw.sodex.dev/api/v1/spot
+USER_WALLET_ADDRESS=0x...
 
-# OpenAI (for story generation + narrative NLP)
+# OpenAI
 OPENAI_API_KEY=your_openai_api_key
 
-# Telegram Bot (optional, for alerts)
+# Telegram Bot (optional)
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
 
-# App Configuration
-NARRATIVE_TRADE_THRESHOLD=80        # Min confidence to auto-trade (0-100)
-MAX_ALLOCATION_PER_TRADE=0.30       # Max 30% of portfolio per narrative trade
-STOP_LOSS_PERCENTAGE=0.08           # 8% trailing stop-loss
-COOLDOWN_HOURS=48                   # Hours between narrative trades
-AUTO_TRADE_ENABLED=false            # Set to true to enable auto-trading
+# Trading & Risk
+NARRATIVE_TRADE_THRESHOLD=80
+MAX_ALLOCATION_PER_TRADE=0.30
+STOP_LOSS_PERCENTAGE=0.08
+COOLDOWN_HOURS=48
+AUTO_TRADE_ENABLED=false
+QTY_DECIMALS=4
+
+# Security
+INTERNAL_API_SECRET=your_secret_here   # Required for POST /api/trade and /api/stories
+
+# Pruning
+NEWS_TTL_HOURS=48
+ETF_FLOWS_TTL_HOURS=24
+
+# Kill-switch behavior
+KILL_SWITCH_FAIL_CLOSED=true           # Default to paused on Edge Config error
 ```
 
 ### Running Locally
@@ -277,85 +289,119 @@ A GitHub Actions workflow is configured under `.github/workflows/ci.yml` that au
 
 ```
 cinder/
-├── README.md                       # Root README file
+├── README.md
 ├── docs/
-│   ├── ARCHITECTURE.md             # Detailed technical architecture
-│   ├── API_INTEGRATION.md          # SoSoValue + SoDEX API usage guide
-│   ├── PRE_MAINNET_CHECKLIST.md    # Pre-mainnet security verification checklist
-│   ├── INCIDENT_RUNBOOK.md         # Incident runbook (Zero-Emoji compliant)
-│   └── RUNBOOK.md                  # Standard operational runbook
+│   ├── ARCHITECTURE.md
+│   ├── API_INTEGRATION.md
+│   ├── PRE_MAINNET_CHECKLIST.md
+│   ├── INCIDENT_RUNBOOK.md
+│   ├── RUNBOOK.md
+│   └── README.md
 ├── contracts/
-│   └── CinderToken.sol             # CNDR ERC-20 Smart Contract
+│   └── CinderToken.sol
 ├── migrations/
-│   └── 0001_init.sql               # SQLite database schema migration
+│   └── 0001_init.sql
 ├── scripts/
-│   ├── db-init.js                  # Database schema seeding script
-│   ├── seed-more-stories.js        # Seed mock data for demo testing
-│   ├── test-circuit-breaker.mjs    # Test script for loss limits
-│   └── test-trade-engine.mjs       # Test execution module
+│   ├── db-init.js
+│   ├── seed-more-stories.js
+│   ├── test-circuit-breaker.mjs
+│   └── test-trade-engine.mjs
 ├── src/
-│   ├── app/                        # Next.js App Router pages
-│   │   ├── layout.js               # Root layout (dark theme, fonts)
-│   │   ├── page.js                 # Home — Landing page (disconnected view)
-│   │   ├── feed/                   # Live wire feed directory
-│   │   │   └── page.js             # Feed — Connected/gated live wire view
-│   │   ├── story/[id]/page.js      # Individual story page
-│   │   ├── dashboard/page.js       # Narrative intelligence dashboard
-│   │   ├── portfolio/page.js       # SoDEX portfolio & trades
-│   │   └── api/                    # API routes
-│   │       ├── stories/route.js    # CRUD for generated stories (rate-limited)
-│   │       ├── narrative/route.js  # Narrative state & history
-│   │       ├── trade/route.js      # SoDEX trade execution (rate-limited)
-│   │       └── webhook/route.js    # Telegram webhook handler (signature verified)
+│   ├── app/
+│   │   ├── layout.js
+│   │   ├── page.js
+│   │   ├── feed/
+│   │   │   └── page.js
+│   │   ├── story/[id]/page.js
+│   │   ├── dashboard/page.js
+│   │   ├── portfolio/page.js
+│   │   └── api/
+│   │       ├── stories/route.js     # POST requires x-internal-api-secret
+│   │       ├── narrative/route.js
+│   │       ├── trade/route.js       # POST requires x-internal-api-secret
+│   │       └── webhook/route.js     # Fail-closed signature check
 │   ├── components/
-│   │   ├── wire/                   # Wire/news UI components
-│   │   │   ├── StoryCard.js        # Individual story card
-│   │   │   ├── StoryFeed.js        # Live-updating story feed
-│   │   │   ├── FlowChart.js        # ETF flow chart (Recharts)
-│   │   │   └── SectorHeatmap.js    # Sector performance heatmap
-│   │   ├── narrative/              # Narrative intelligence UI
-│   │   │   ├── BubbleMap.js        # D3 narrative bubble visualization
-│   │   │   ├── Timeline.js         # Historical narrative timeline
-│   │   │   ├── TemperatureGauge.js # Narrative temperature meter
-│   │   │   └── ShiftAlert.js       # Narrative shift alert card
-│   │   ├── trading/                # Portfolio & trading UI
-│   │   │   ├── PortfolioView.js    # Current positions & allocation
-│   │   │   ├── TradeHistory.js     # Trade log linked to stories
-│   │   │   ├── RiskDashboard.js    # Stop-loss levels, exposure
-│   │   │   └── QuickTrade.js       # SoDEX trade widget
-│   │   └── shared/                 # Shared/layout components
-│   │       ├── Header.js           # Navigation header
-│   │       ├── Footer.js           # Shared footer component
-│   │       ├── LiveIndicator.js    # Pulsing "LIVE" badge
-│   │       └── ThemeProvider.js    # Dark/light theme
+│   │   ├── wire/
+│   │   │   ├── StoryCard.js         # XSS-escaped markdown
+│   │   │   ├── StoryFeed.js
+│   │   │   ├── FlowChart.js
+│   │   │   └── SectorHeatmap.js
+│   │   ├── narrative/
+│   │   │   ├── BubbleMap.js
+│   │   │   ├── Timeline.js
+│   │   │   ├── TemperatureGauge.js
+│   │   │   └── ShiftAlert.js
+│   │   ├── trading/
+│   │   │   ├── PortfolioView.js
+│   │   │   ├── TradeHistory.js
+│   │   │   ├── RiskDashboard.js
+│   │   │   └── QuickTrade.js
+│   │   └── shared/
+│   │       ├── Header.js
+│   │       ├── Footer.js
+│   │       ├── LiveIndicator.js
+│   │       └── ThemeProvider.js
 │   ├── context/
-│   │   └── WalletContext.js        # Web3 wallet connection provider (EIP-1193)
+│   │   └── WalletContext.js
 │   ├── lib/
-│   │   ├── sosovalue.js            # SoSoValue API client
-│   │   ├── sodex.js                # SoDEX API client (with EIP-712 signing)
-│   │   ├── openai.js               # LLM client for story gen + NLP
-│   │   ├── db.js                   # libSQL/Turso database client helpers
-│   │   ├── rate-limiter.js         # Sliding window rate limiter helper
-│   │   ├── scheduler.js            # Node-cron scheduler for automated jobs
-│   │   └── telegram.js             # Telegram bot client
-│   ├── engine/                     # Narrative intelligence engine (JS)
-│   │   ├── narrative.js            # Narrative classifier & temperature tracker
-│   │   ├── shift-detector.js       # Multi-signal shift detection
-│   │   └── trade-engine.js         # Risk-managed trade execution logic
+│   │   ├── sosovalue.js
+│   │   ├── sodex.js                 # Monotonic nonce counter
+│   │   ├── openai.js                # Timeout + error flag on classification
+│   │   ├── db.js                    # Production guard for TURSO_DATABASE_URL
+│   │   ├── validator.js             # try/catch on DB queries
+│   │   ├── rate-limiter.js
+│   │   ├── scheduler.js             # Configurable pruning TTLs
+│   │   └── telegram.js
+│   ├── engine/
+│   │   ├── __tests__/
+│   │   │   ├── narrative.test.js
+│   │   │   ├── shift-detector.test.js
+│   │   │   └── trade-engine.test.js
+│   │   ├── narrative.js
+│   │   ├── shift-detector.js
+│   │   └── trade-engine.js          # Kill-switch in stop-loss, batch inserts
 │   └── styles/
-│       ├── globals.css             # CSS variables, dark theme, typography
-│       ├── wire.css                # Wire/news page styles
-│       ├── dashboard.css           # Narrative dashboard styles
-│       └── portfolio.css           # Portfolio page styles
-├── engine/                         # Python narrative engine (alternative/skeleton)
-│   ├── main.py                     # Engine entry point + scheduler
-│   ├── narrative_classifier.py     # NLP narrative classification
-│   ├── shift_detector.py           # Regime shift detection algorithm
-│   └── requirements.txt            # Python dependencies
-├── .env.example                    # Environment variable template
-├── package.json                    # Node.js dependencies
-└── next.config.js                  # Next.js configuration
+│       ├── globals.css
+│       ├── wire.css
+│       ├── dashboard.css
+│       └── portfolio.css
+├── engine/
+│   ├── main.py
+│   ├── narrative_classifier.py
+│   ├── shift_detector.py
+│   └── requirements.txt
+├── .env.example
+├── package.json
+└── next.config.js
 ```
+
+### Security Hardening
+
+This section documents the security fixes applied during the comprehensive code review.
+
+#### Internal API Auth (CRITICAL)
+POST requests to `/api/trade` and `/api/stories` require an `x-internal-api-secret` header matching the `INTERNAL_API_SECRET` env var. Without this header, POST requests are rejected with 401.
+
+#### Kill-Switch Fail-Closed
+If the Edge Config lookup fails (network error, timeout, misconfigured client), the kill-switch **fails closed** (trades paused). Set `KILL_SWITCH_FAIL_CLOSED=false` to revert to failing open.
+
+#### Nonce Generation
+The SoDEX order nonce is a monotonic counter (not `Date.now()`), preventing nonce reuse under concurrent requests that could cause duplicate fills.
+
+#### Database Guard
+When `TURSO_DATABASE_URL` is unset in a production environment, the app fails immediately at startup rather than silently connecting to an in-memory database.
+
+#### XSS Protection
+Story card markdown output is escaped via `escapeHtml()` before rendering, preventing injection via crafted story text.
+
+#### Stop-Loss Kill-Switch Check
+`executeStopLossMonitoring()` now checks the kill-switch before processing stop-loss orders. When paused, stop-losses are skipped to prevent unexpected position closures during manual intervention.
+
+#### Daily-Loss Circuit Breaker
+Trips when `portfolioValue <= 0` (not just net PnL comparison), catching cases where the wallet is effectively drained.
+
+#### Cooldown Gate
+Now checks the most recent `filled` buy trade, not any trade type, preventing irrelevant sell/stop records from resetting the cooldown timer.
 
 ---
 

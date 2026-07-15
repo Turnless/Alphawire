@@ -100,9 +100,77 @@ export default function DashboardPage() {
           </div>
           {loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-wire-gold)', fontWeight: 700 }}>
+              <span className="shimmer-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--color-wire-gold)', display: 'inline-block' }} />
               Loading...
             </div>
           )}
+        </div>
+
+        {/* KPI Cards Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: 'var(--space-xl)' }}>
+          {/* Card 1: Dominant Narrative */}
+          <motion.div 
+            whileHover={{ y: -4, borderColor: 'rgba(212, 168, 83, 0.4)' }}
+            className="clay-glass" 
+            style={{ padding: '20px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--glass-border)', transition: 'border-color 0.2s ease' }}
+          >
+            <div>
+              <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Dominant Regime</div>
+              <div style={{ fontSize: '0.92rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--color-linen)', lineHeight: 1.2 }}>
+                {sortedNarratives[0]?.name || 'N/A'}
+              </div>
+            </div>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-wire-gold)', boxShadow: '0 0 8px var(--color-wire-gold)' }} />
+          </motion.div>
+
+          {/* Card 2: Highest Temperature */}
+          <motion.div 
+            whileHover={{ y: -4, borderColor: 'rgba(212, 168, 83, 0.4)' }}
+            className="clay-glass" 
+            style={{ padding: '20px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--glass-border)', transition: 'border-color 0.2s ease' }}
+          >
+            <div>
+              <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Regime Temperature</div>
+              <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: (sortedNarratives[0]?.temperature || 0) > 80 ? 'var(--color-shift-red)' : 'var(--color-linen)' }}>
+                {(sortedNarratives[0]?.temperature || 0).toFixed(1)}&deg;
+              </div>
+            </div>
+            {sortedNarratives[0] && (
+              <TemperatureGauge temperature={sortedNarratives[0].temperature} label="" diameter={45} />
+            )}
+          </motion.div>
+
+          {/* Card 3: Execution Mode */}
+          <motion.div 
+            whileHover={{ y: -4, borderColor: 'rgba(212, 168, 83, 0.4)' }}
+            className="clay-glass" 
+            style={{ padding: '20px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--glass-border)', transition: 'border-color 0.2s ease' }}
+          >
+            <div>
+              <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Execution State</div>
+              <div style={{ fontSize: '1rem', fontFamily: 'var(--font-display)', fontWeight: 700, color: tradeData.autoTradeEnabled ? 'var(--color-pulse-green)' : 'var(--color-alert-amber)' }}>
+                {tradeData.autoTradeEnabled ? 'AUTOPILOT' : 'MONITORING'}
+              </div>
+            </div>
+            <span style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', padding: '4px 8px', borderRadius: '6px', background: tradeData.autoTradeEnabled ? 'rgba(74, 222, 128, 0.08)' : 'rgba(212, 168, 83, 0.08)', color: tradeData.autoTradeEnabled ? 'var(--color-pulse-green)' : 'var(--color-wire-gold)', border: '1px solid rgba(212, 168, 83, 0.15)', fontWeight: 700 }}>
+              {tradeData.autoTradeEnabled ? 'ACTIVE' : 'MANUAL'}
+            </span>
+          </motion.div>
+
+          {/* Card 4: Trade Threshold */}
+          <motion.div 
+            whileHover={{ y: -4, borderColor: 'rgba(212, 168, 83, 0.4)' }}
+            className="clay-glass" 
+            style={{ padding: '20px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid var(--glass-border)', transition: 'border-color 0.2s ease' }}
+          >
+            <div>
+              <div style={{ fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Trade Trigger Gate</div>
+              <div style={{ fontSize: '1.5rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-linen)' }}>
+                {threshold}&deg;
+              </div>
+            </div>
+            <div style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)', fontWeight: 600 }}>MIN TEMP</div>
+          </motion.div>
         </div>
 
         {/* Dashboard Grid */}
@@ -110,99 +178,189 @@ export default function DashboardPage() {
           {/* Left Column: Bubble Map */}
           <div className="main-viz">
             <div className="clay-glass bubble-map-panel">
-              <div className="bubble-map-title">Narrative Heat Map</div>
+              <div className="bubble-map-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1rem', color: 'var(--color-linen)', borderBottom: '1px solid rgba(236,223,204,0.08)', paddingBottom: '10px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-wire-gold)' }} />
+                Narrative Heat Map
+              </div>
               <BubbleMap temperatures={narrativeData.temperatures} />
             </div>
           </div>
 
           {/* Right Column: Key Stats & Narrative List */}
-          <div className="side-panel">
+          <div className="side-panel" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Regime Shift Alerts */}
             <ShiftAlert shift={latestShift} threshold={threshold} />
 
             {/* Active Narratives Ranked */}
-            <div className="clay-glass active-narratives-card" style={{ marginTop: 'var(--space-md)' }}>
-              <div className="card-header">Active Narratives</div>
-              <div className="narrative-list">
-                {sortedNarratives.map((item) => (
-                  <div key={item.id} className="narrative-row">
-                    <div className="narrative-info">
-                      <span className="narrative-name">{item.name}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="data-mono" style={{ 
-                        color: item.temperature > 85 ? 'var(--color-shift-red)' : 
-                               item.temperature > 65 ? 'var(--color-wire-gold)' : 
-                               'var(--color-linen)',
-                        fontWeight: 700
-                      }}>
-                        {item.temperature.toFixed(1)}&deg;
-                      </span>
-                      <div style={{ 
-                        width: '8px', 
-                        height: '8px', 
-                        borderRadius: '50%', 
-                        backgroundColor: item.temperature > 85 ? 'var(--color-shift-red)' : 
-                                         item.temperature > 65 ? 'var(--color-wire-gold)' : 
-                                         'var(--color-sage)',
-                        boxShadow: item.temperature > 85 ? '0 0 8px var(--color-shift-red)' : 'none'
-                      }} />
-                    </div>
-                  </div>
-                ))}
+            <div className="clay-glass active-narratives-card" style={{ padding: '20px', borderRadius: '16px' }}>
+              <div className="card-header" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1rem', color: 'var(--color-linen)', borderBottom: '1px solid rgba(236,223,204,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
+                Active Narratives
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {sortedNarratives.map((item, idx) => {
+                  const isActive = item.temperature >= threshold;
+                  return (
+                    <motion.div 
+                      key={item.id} 
+                      className="clay-glass"
+                      whileHover={{ scale: 1.01, x: 4, borderColor: 'rgba(212, 168, 83, 0.4)' }}
+                      style={{ 
+                        padding: '12px 16px', 
+                        borderRadius: '12px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        border: '1px solid rgba(236,223,204,0.05)',
+                        background: isActive ? 'rgba(212, 168, 83, 0.03)' : 'rgba(30, 32, 30, 0.25)',
+                        transition: 'border-color 0.2s ease, background 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '0.85rem', fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--color-linen)' }}>
+                          {item.name}
+                        </span>
+                        <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: 'var(--color-sage)' }}>
+                          Rank #{idx + 1}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ 
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '0.9rem',
+                          color: item.temperature > 85 ? 'var(--color-shift-red)' : 
+                                 item.temperature > 65 ? 'var(--color-wire-gold)' : 
+                                 'var(--color-linen)',
+                          fontWeight: 700
+                        }}>
+                          {item.temperature.toFixed(1)}&deg;
+                        </span>
+                        <div style={{ 
+                          width: '8px', 
+                          height: '8px', 
+                          borderRadius: '50%', 
+                          backgroundColor: item.temperature > 85 ? 'var(--color-shift-red)' : 
+                                           item.temperature > 65 ? 'var(--color-wire-gold)' : 
+                                           'var(--color-sage)',
+                          boxShadow: item.temperature > 85 ? '0 0 8px var(--color-shift-red)' : 'none'
+                        }} />
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             </div>
           </div>
         </div>
 
         {/* Narrative Timelines & System Logs */}
-        <div className="dashboard-row" style={{ marginTop: 'var(--space-xl)' }}>
-          <h3 className="section-heading" style={{ marginBottom: 'var(--space-md)' }}>Historical Regime Timelines</h3>
-          <Timeline temperatures={narrativeData.temperatures} />
+        <div className="dashboard-row" style={{ marginTop: 'var(--space-2xl)' }}>
+          <h3 className="section-heading" style={{ fontSize: '1.25rem', marginBottom: 'var(--space-md)', borderLeft: '4px solid var(--color-wire-gold)', paddingLeft: '16px' }}>
+            Historical Regime Timelines
+          </h3>
+          <Timeline shifts={narrativeData.shifts} />
         </div>
 
-        <div className="dashboard-row" style={{ marginTop: 'var(--space-xl)' }}>
-          <h3 className="section-heading" style={{ marginBottom: 'var(--space-md)' }}>Autonomous Execution Logs</h3>
-          <div className="clay-glass table-container">
+        <div className="dashboard-row" style={{ marginTop: 'var(--space-2xl)' }}>
+          <h3 className="section-heading" style={{ fontSize: '1.25rem', marginBottom: 'var(--space-md)', borderLeft: '4px solid var(--color-wire-gold)', paddingLeft: '16px' }}>
+            Autonomous Execution Logs
+          </h3>
+          <div className="clay-glass table-container" style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Timestamp</th>
-                  <th>Narrative Sector</th>
-                  <th>Action Code</th>
-                  <th>Execution Status</th>
+                  <th style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Timestamp</th>
+                  <th style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Regime Transition</th>
+                  <th style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Action Code</th>
+                  <th style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', letterSpacing: '0.05em' }}>Execution Status</th>
                 </tr>
               </thead>
               <tbody>
                 {narrativeData.shifts.length === 0 ? (
                   <tr>
-                    <td colSpan="4" style={{ textAlign: 'center', color: 'var(--color-sage)' }}>
+                    <td colSpan="4" style={{ textAlign: 'center', color: 'var(--color-sage)', padding: '40px 0', fontFamily: 'var(--font-body)', fontSize: '0.85rem' }}>
                       No execution logs generated yet. Waiting for market shifts.
                     </td>
                   </tr>
                 ) : (
                   narrativeData.shifts.map((shift) => {
                     const dateString = new Date(shift.detected_at).toLocaleString();
+                    const hasTrade = !!shift.trade_id;
                     return (
-                      <tr key={shift.id}>
-                        <td className="data-mono">{dateString}</td>
-                        <td>{NARRATIVE_NAMES[shift.narrative_id] || shift.narrative_id}</td>
+                      <tr key={shift.id} style={{ transition: 'background-color 0.2s ease' }}>
+                        <td className="data-mono" style={{ fontSize: '0.75rem' }}>{dateString}</td>
+                        <td style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-linen)' }}>
+                          <span style={{ opacity: 0.7 }}>{NARRATIVE_NAMES[shift.from_narrative] || shift.from_narrative}</span>
+                          <span style={{ color: 'var(--color-wire-gold)', margin: '0 8px' }}>&rarr;</span>
+                          <span>{NARRATIVE_NAMES[shift.to_narrative] || shift.to_narrative}</span>
+                        </td>
                         <td>
-                          {shift.action === 'regime_shift_trigger' ? (
-                            <span style={{ color: 'var(--color-wire-gold)' }}>REGIME_SHIFT_BUY</span>
-                          ) : shift.action === 'cooldown_active' ? (
-                            <span style={{ color: 'var(--color-sage)' }}>COOLDOWN_HOLD</span>
+                          {hasTrade ? (
+                            <span style={{ 
+                              fontFamily: 'var(--font-mono)', 
+                              fontSize: '0.68rem', 
+                              fontWeight: 700, 
+                              padding: '4px 8px', 
+                              borderRadius: '6px', 
+                              background: 'rgba(212, 168, 83, 0.08)', 
+                              color: 'var(--color-wire-gold)', 
+                              border: '1px solid rgba(212, 168, 83, 0.2)' 
+                            }}>
+                              REGIME_SHIFT_BUY
+                            </span>
                           ) : (
-                            <span style={{ color: 'var(--color-sage)' }}>N/A</span>
+                            <span style={{ 
+                              fontFamily: 'var(--font-mono)', 
+                              fontSize: '0.68rem', 
+                              fontWeight: 700, 
+                              padding: '4px 8px', 
+                              borderRadius: '6px', 
+                              background: 'rgba(236, 223, 204, 0.04)', 
+                              color: 'var(--color-sage)', 
+                              border: '1px solid rgba(236, 223, 204, 0.1)' 
+                            }}>
+                              RISK_GATE_HOLD
+                            </span>
                           )}
                         </td>
                         <td>
-                          {shift.trade_id ? (
-                            <span className="data-mono" style={{ color: 'var(--color-pulse-green)' }}>
+                          {hasTrade ? (
+                            <span className="data-mono" style={{ 
+                              fontSize: '0.68rem', 
+                              fontWeight: 700, 
+                              padding: '4px 8px', 
+                              borderRadius: '6px', 
+                              background: 'rgba(74, 222, 128, 0.08)', 
+                              color: 'var(--color-pulse-green)', 
+                              border: '1px solid rgba(74, 222, 128, 0.2)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              <span style={{ 
+                                width: '6px', 
+                                height: '6px', 
+                                borderRadius: '50%', 
+                                backgroundColor: 'var(--color-pulse-green)', 
+                                display: 'inline-block',
+                                boxShadow: '0 0 6px var(--color-pulse-green)',
+                                animation: 'pulse 1.5s infinite'
+                              }} />
                               Executed
                             </span>
                           ) : (
-                            <span style={{ color: 'var(--color-sage)' }}>Ignored</span>
+                            <span style={{ 
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.68rem', 
+                              fontWeight: 700, 
+                              padding: '4px 8px', 
+                              borderRadius: '6px', 
+                              background: 'rgba(239, 68, 68, 0.04)', 
+                              color: 'var(--color-sage)', 
+                              border: '1px solid rgba(239, 68, 68, 0.1)' 
+                            }}>
+                              Ignored
+                            </span>
                           )}
                         </td>
                       </tr>

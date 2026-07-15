@@ -1,10 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ethers } from 'ethers';
+import { useWallet } from '../../context/WalletContext';
 
 export default function QuickTrade({ onTradeSuccess }) {
+  // Global Web3 Wallet Context
+  const { walletAddress: globalWalletAddress, connectWallet: globalConnect, isConnecting: globalConnecting } = useWallet();
+
   // Order params
   const [pair, setPair] = useState('BTC-USDC');
   const [side, setSide] = useState('buy');
@@ -16,28 +20,71 @@ export default function QuickTrade({ onTradeSuccess }) {
 
   // Flow control states
   const [step, setStep] = useState('input'); // 'input', 'review', 'signing', 'success', 'error'
-  const [walletAddress, setWalletAddress] = useState('');
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [localWalletAddress, setLocalWalletAddress] = useState('');
+  const [isLocalConnecting, setIsLocalConnecting] = useState(false);
   const [signatureHex, setSignatureHex] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [executionResult, setExecutionResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Live Price feed state
+  const [livePrice, setLivePrice] = useState(null);
+  const [fetchingPrice, setFetchingPrice] = useState(false);
+
+  const activeWalletAddress = globalWalletAddress || localWalletAddress;
+  const isConnecting = globalConnecting || isLocalConnecting;
+
+  // Poll for the live price of the selected pair
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLivePrice = async () => {
+      if (!isMounted) return;
+      setFetchingPrice(true);
+      try {
+        const res = await fetch(`/api/trade?ticker=${pair}`);
+        const data = await res.json();
+        if (data.success && isMounted) {
+          setLivePrice(data.price);
+          // If orderType is market, automatically fill the price field for EIP-712 hashing
+          if (orderType === 'market') {
+            setPrice(data.price);
+          }
+        }
+      } catch (err) {
+        console.error('[ERROR] Failed to fetch live price in QuickTrade:', err);
+      } finally {
+        if (isMounted) setFetchingPrice(false);
+      }
+    };
+
+    fetchLivePrice();
+    const interval = setInterval(fetchLivePrice, 10000); // refresh every 10s
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [pair, orderType]);
+
   const handleConnectWallet = async () => {
+    if (globalConnect) {
+      await globalConnect();
+      return;
+    }
+    
     if (typeof window === 'undefined' || !window.ethereum) {
       alert('MetaMask or another EVM wallet was not detected in this browser.');
       return;
     }
-    setIsConnecting(true);
+    setIsLocalConnecting(true);
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const accounts = await provider.send('eth_requestAccounts', []);
-      setWalletAddress(accounts[0]);
+      setLocalWalletAddress(accounts[0]);
     } catch (e) {
       console.error(e);
       alert('Failed to connect wallet: ' + e.message);
     } finally {
-      setIsConnecting(false);
+      setIsLocalConnecting(false);
     }
   };
 
@@ -61,7 +108,7 @@ export default function QuickTrade({ onTradeSuccess }) {
     try {
       let finalPrice = price || '0.0';
       if (orderType === 'market') {
-        finalPrice = pair.startsWith('BTC') ? '64850.00' : '3210.00';
+        finalPrice = livePrice || (pair.startsWith('BTC') ? '64850.00' : '3210.00');
       }
 
       const slPrice = useStopLoss 
@@ -74,17 +121,46 @@ export default function QuickTrade({ onTradeSuccess }) {
       let signature = '0x';
 
       if (signingScheme === 'browser') {
-        if (!walletAddress) {
+        if (!activeWalletAddress) {
           throw new Error('Wallet not connected. Connect web3 wallet first.');
         }
 
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
+        const network = await provider.getNetwork();
+
+        // On-chain CNDR transfer for BUY orders
+        const tokenAddress = process.env.NEXT_PUBLIC_CNDR_TOKEN_ADDRESS;
+        if (side === 'buy' && tokenAddress && tokenAddress !== '0x...' && tokenAddress !== '') {
+          const cost = parseFloat(quantity) * parseFloat(finalPrice);
+          const tokenAbi = [
+            "function transfer(address to, uint256 amount) returns (bool)",
+            "function balanceOf(address owner) view returns (uint256)"
+          ];
+          const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+
+          // Verify user has sufficient CNDR balance
+          const walletBal = await tokenContract.balanceOf(activeWalletAddress);
+          const formattedBal = parseFloat(ethers.utils.formatUnits(walletBal, 18));
+          if (formattedBal < cost) {
+            throw new Error(`Insufficient CNDR balance. Required: ${cost.toFixed(2)} CNDR. Your balance: ${formattedBal.toFixed(2)} CNDR. Please claim CNDR from the faucet above.`);
+          }
+
+          setErrorMessage('Please confirm the CNDR transfer in your wallet...');
+          // Get server master wallet address dynamically
+          const masterRes = await fetch('/api/trade?masterAddress=true');
+          const masterData = await masterRes.json();
+          const masterAddress = masterData.masterAddress || "0xa7c0689b9d40f12098b02512a945e928478dd38e";
+
+          const tx = await tokenContract.transfer(masterAddress, ethers.utils.parseUnits(cost.toFixed(6), 18));
+          setErrorMessage('Waiting for CNDR transfer transaction to be mined...');
+          await tx.wait();
+        }
 
         const domain = {
           name: 'spot',
           version: '1',
-          chainId: 138565, // SoDEX Spot Testnet chainId
+          chainId: network.chainId,
           verifyingContract: '0x0000000000000000000000000000000000000000'
         };
 
@@ -127,8 +203,7 @@ export default function QuickTrade({ onTradeSuccess }) {
           quantity,
           price: finalPrice,
           stopLossPrice: slPrice,
-          clientSignature: signature !== '0x' ? signature : null,
-          clientWallet: walletAddress || null
+          clientWallet: activeWalletAddress || null
         }),
       });
 
@@ -161,9 +236,9 @@ export default function QuickTrade({ onTradeSuccess }) {
           </p>
         </div>
         
-        {walletAddress ? (
+        {activeWalletAddress ? (
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', backgroundColor: 'rgba(74, 222, 128, 0.08)', color: 'var(--color-pulse-green)', border: '1px solid rgba(74, 222, 128, 0.25)', padding: '4px 10px', borderRadius: 'var(--radius-full)' }}>
-            Connected: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+            Connected: {activeWalletAddress.slice(0, 6)}...{activeWalletAddress.slice(-4)}
           </span>
         ) : (
           <button
@@ -226,7 +301,15 @@ export default function QuickTrade({ onTradeSuccess }) {
 
             {/* Asset Pair Selection */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-sage)' }}>Trading Asset Pair</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-sage)' }}>Trading Asset Pair</label>
+                {livePrice && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-pulse-green)', fontFamily: 'var(--font-mono)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="live-dot" style={{ display: 'inline-block', width: '6px', height: '6px', backgroundColor: 'var(--color-pulse-green)', borderRadius: '50%', animation: 'pulse 1.5s infinite' }}></span>
+                    Live Price: ${parseFloat(livePrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
+                  </span>
+                )}
+              </div>
               <select
                 value={pair}
                 onChange={(e) => setPair(e.target.value)}
@@ -410,18 +493,18 @@ export default function QuickTrade({ onTradeSuccess }) {
 
             {/* Execute Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-              {walletAddress ? (
+              {activeWalletAddress ? (
                 <button
                   type="button"
                   onClick={() => handleExecuteTrade('browser')}
                   className="btn-hero-primary"
                   style={{ width: '100%', backgroundColor: 'var(--color-pulse-green)', borderColor: 'var(--color-pulse-green)', color: 'var(--color-obsidian)' }}
                 >
-                  Sign EIP-712 & Execute
+                  Authorize & Trade via Wallet
                 </button>
               ) : (
                 <div style={{ textAlign: 'center', padding: '12px', backgroundColor: 'rgba(245, 158, 11, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(245, 158, 11, 0.25)', fontSize: '0.72rem', color: 'var(--color-alert-amber)', marginBottom: '4px' }}>
-                  Connect Web3 Wallet above to sign orders locally, or execute using server credentials:
+                  Connect your Web3 Wallet to authorize trades locally, or execute automatically using the server:
                 </div>
               )}
               
@@ -431,7 +514,7 @@ export default function QuickTrade({ onTradeSuccess }) {
                 className="btn-hero-secondary"
                 style={{ width: '100%' }}
               >
-                Execute with Server API Key
+                Execute Automatically via Server
               </button>
 
               <button

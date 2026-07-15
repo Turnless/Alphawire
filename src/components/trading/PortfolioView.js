@@ -8,6 +8,7 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
   const parsedBalance = parseFloat(balance || 0);
   const positionsValue = positions.reduce((acc, pos) => acc + parseFloat(pos.value || 0), 0);
   const totalValue = parsedBalance + positionsValue;
+  const safeTotal = totalValue || 1; // prevent division by zero
 
   const handleClosePosition = async (pos) => {
     if (!confirm(`Are you sure you want to close/sell your entire position in ${pos.asset}?`)) return;
@@ -69,19 +70,19 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--color-sage)', marginBottom: '8px' }}>
           <span>Asset Allocation</span>
           <span>
-            Cash: <span style={{ fontFamily: 'var(--font-mono)' }}>{((parsedBalance / totalValue) * 100).toFixed(1)}%</span> | 
-            Positions: <span style={{ fontFamily: 'var(--font-mono)' }}>{((positionsValue / totalValue) * 100).toFixed(1)}%</span>
+            Cash: <span style={{ fontFamily: 'var(--font-mono)' }}>{((parsedBalance / safeTotal) * 100).toFixed(1)}%</span> | 
+            Positions: <span style={{ fontFamily: 'var(--font-mono)' }}>{((positionsValue / safeTotal) * 100).toFixed(1)}%</span>
           </span>
         </div>
         <div style={{ width: '100%', height: '12px', backgroundColor: 'var(--color-iron)', borderRadius: 'var(--radius-full)', overflow: 'hidden', display: 'flex' }}>
           {/* Cash portion */}
           <div 
-            style={{ width: `${(parsedBalance / totalValue) * 100}%`, height: '100%', backgroundColor: 'var(--color-data-blue)' }}
-            title={`Cash (USDC): $${parsedBalance.toFixed(2)}`}
+            style={{ width: `${(parsedBalance / safeTotal) * 100}%`, height: '100%', backgroundColor: 'var(--color-data-blue)' }}
+            title={`Cash (CNDR): $${parsedBalance.toFixed(2)}`}
           />
           {/* Position portions */}
           {positions.map((pos, idx) => {
-            const width = (parseFloat(pos.value || 0) / totalValue) * 100;
+            const width = (parseFloat(pos.value || 0) / safeTotal) * 100;
             const colors = ['var(--color-wire-gold)', 'var(--color-pulse-green)', 'var(--color-alert-amber)', 'var(--color-shift-red)', 'var(--color-sage)'];
             const color = colors[idx % colors.length];
             return (
@@ -98,7 +99,7 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--color-sage)' }}>
             <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '2px', backgroundColor: 'var(--color-data-blue)' }} />
-            <span>USDC: <span style={{ fontFamily: 'var(--font-mono)' }}>${parsedBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
+            <span>CNDR: <span style={{ fontFamily: 'var(--font-mono)' }}>${parsedBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
           </div>
           {positions.map((pos, idx) => {
             const colors = ['var(--color-wire-gold)', 'var(--color-pulse-green)', 'var(--color-alert-amber)', 'var(--color-shift-red)', 'var(--color-sage)'];
