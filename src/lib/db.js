@@ -42,10 +42,9 @@ const remoteClient = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN || '',
 });
 
-// Initializing local fallback client
-const localClient = createClient({
-  url: 'file:local.db',
-});
+// Local fallback only available in development
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+const localClient = isProduction ? null : createClient({ url: 'file:local.db' });
 
 // Helper to identify network connectivity failures
 function isNetworkError(err) {
@@ -70,7 +69,7 @@ export async function query(sql, params = []) {
     const res = await remoteClient.execute({ sql, args: params });
     return res.rows;
   } catch (err) {
-    if (isNetworkError(err)) {
+    if (!isProduction && localClient && isNetworkError(err)) {
       console.warn('[WARNING] Remote Turso connection offline. Falling back to local SQLite DB.');
       try {
         const res = await localClient.execute({ sql, args: params });
@@ -99,7 +98,7 @@ export async function execute(sql, params = []) {
       lastInsertRowid: res.lastInsertRowid
     };
   } catch (err) {
-    if (isNetworkError(err)) {
+    if (!isProduction && localClient && isNetworkError(err)) {
       console.warn('[WARNING] Remote Turso connection offline. Falling back to local SQLite DB.');
       try {
         const res = await localClient.execute({ sql, args: params });
@@ -126,7 +125,7 @@ export async function batch(statements) {
   try {
     return await remoteClient.batch(statements);
   } catch (err) {
-    if (isNetworkError(err)) {
+    if (!isProduction && localClient && isNetworkError(err)) {
       console.warn('[WARNING] Remote Turso connection offline. Falling back to local SQLite DB.');
       try {
         return await localClient.batch(statements);
