@@ -5,7 +5,6 @@ import path from 'path';
 import { query, execute } from '../../../lib/db';
 import { rateLimit } from '../../../lib/rate-limiter';
 import { getAINewsFeed } from '../../../lib/sosovalue';
-import { refineAllNews } from '../../../lib/openai';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,19 +64,13 @@ export async function GET(request) {
     const type = searchParams.get('type');
     const refresh = searchParams.get('refresh') === 'true';
 
-    // Manual refresh: fetch fresh news from SoSoValue and cache it
+    // Manual refresh: fetch fresh news from SoSoValue and cache it (skip slow AI refinement)
     if (refresh) {
       try {
         console.log('[STORIES API] Manual news refresh triggered...');
         const freshNews = await getAINewsFeed(50);
         if (freshNews && freshNews.length > 0) {
-          let refinedNews = freshNews;
-          try {
-            refinedNews = await refineAllNews(freshNews);
-          } catch (refineErr) {
-            console.error('[STORIES API] News refinement failed, using raw news:', refineErr.message);
-          }
-          for (const item of refinedNews) {
+          for (const item of freshNews) {
             await execute(
               `INSERT INTO news_items (id, title, summary, source, keywords, sentiment, fetched_at)
                VALUES (?, ?, ?, ?, ?, ?, ?)
