@@ -59,8 +59,9 @@ export default function PortfolioPage() {
   }, [isConnected, walletChecked, router]);
 
   const fetchPortfolioData = useCallback(async () => {
+    if (!walletAddress) return;
     try {
-      const tradeRes = await fetch('/api/trade');
+      const tradeRes = await fetch(`/api/trade?address=${walletAddress}`);
       const tradeJson = await tradeRes.json();
       if (tradeJson.success) {
         setTradeData(tradeJson);

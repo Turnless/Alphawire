@@ -24,7 +24,7 @@ const NARRATIVE_NAMES = {
 };
 
 export default function DashboardPage() {
-  const { isConnected, walletChecked } = useWallet();
+  const { isConnected, walletChecked, walletAddress } = useWallet();
   const router = useRouter();
   const [narrativeData, setNarrativeData] = useState({ temperatures: {}, shifts: [] });
   const [tradeData, setTradeData] = useState({ riskConfig: { threshold: 80 } });
@@ -48,7 +48,8 @@ export default function DashboardPage() {
         });
       }
 
-      const tradeRes = await fetch('/api/trade');
+      const addressParam = walletAddress ? `?address=${walletAddress}` : '';
+      const tradeRes = await fetch(`/api/trade${addressParam}`);
       const tradeJson = await tradeRes.json();
       if (tradeJson.success) {
         setTradeData(tradeJson);
