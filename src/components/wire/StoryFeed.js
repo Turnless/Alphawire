@@ -152,6 +152,8 @@ export default function StoryFeed({ temperatureWidget }) {
 
   useEffect(() => {
     fetchStories(1, false);
+    // Background refresh: fetch fresh news from SoSoValue without blocking page
+    fetch('/api/stories?refresh=true&limit=50').catch(() => {});
   }, []);
 
   // Listen to live SSE updates
