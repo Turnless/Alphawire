@@ -5,6 +5,7 @@ import path from 'path';
 import { query, execute } from '../../../lib/db';
 import { rateLimit } from '../../../lib/rate-limiter';
 import { getAINewsFeed } from '../../../lib/sosovalue';
+import { refineAllNews } from '../../../lib/openai';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,13 +65,29 @@ export async function GET(request) {
     const type = searchParams.get('type');
     const refresh = searchParams.get('refresh') === 'true';
 
-    // Manual refresh: fetch fresh news from SoSoValue and cache it (skip slow AI refinement)
+    // Manual refresh: fetch fresh news, refine last 10 via MiMo, cache all
     if (refresh) {
       try {
         console.log('[STORIES API] Manual news refresh triggered...');
         const freshNews = await getAINewsFeed(50);
         if (freshNews && freshNews.length > 0) {
-          for (const item of freshNews) {
+          // Refine only the latest 10 via MiMo AI
+          const toRefine = freshNews.slice(0, 10);
+          let refined = toRefine;
+          try {
+            refined = await refineAllNews(toRefine);
+          } catch (refineErr) {
+            console.error('[STORIES API] MiMo refinement failed, using raw news:', refineErr.message);
+          }
+
+          // Merge refined back into full list
+          const refinedMap = {};
+          for (const item of refined) {
+            refinedMap[item.id] = item;
+          }
+          const allNews = freshNews.map(item => refinedMap[item.id] || item);
+
+          for (const item of allNews) {
             await execute(
               `INSERT INTO news_items (id, title, summary, source, keywords, sentiment, fetched_at)
                VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -90,7 +107,7 @@ export async function GET(request) {
               ]
             );
           }
-          console.log(`[STORIES API] Refreshed and cached ${freshNews.length} news items`);
+          console.log(`[STORIES API] Refreshed ${freshNews.length} news, refined top 10 via MiMo`);
         }
       } catch (refreshErr) {
         console.error('[STORIES API] Error during manual refresh:', refreshErr);
