@@ -26,6 +26,7 @@ export default function PortfolioPage() {
   });
   const [loading, setLoading] = useState(true);
   const [isTelegramLoading, setIsTelegramLoading] = useState(false);
+  const [telegramConnected, setTelegramConnected] = useState(false);
 
   const handleConnectTelegram = async () => {
     if (!walletAddress) return;
@@ -71,12 +72,27 @@ export default function PortfolioPage() {
     }
   }, [walletAddress, cndrBalance]);
 
+  const checkTelegramStatus = useCallback(async () => {
+    if (!walletAddress) return;
+    try {
+      const res = await fetch(`/api/telegram-auth?address=${walletAddress}`);
+      const data = await res.json();
+      setTelegramConnected(data.connected === true);
+    } catch (e) {
+      setTelegramConnected(false);
+    }
+  }, [walletAddress]);
+
   useEffect(() => {
     if (!isConnected) return;
     fetchPortfolioData();
-    const interval = setInterval(fetchPortfolioData, 30000);
+    checkTelegramStatus();
+    const interval = setInterval(() => {
+      fetchPortfolioData();
+      checkTelegramStatus();
+    }, 30000);
     return () => clearInterval(interval);
-  }, [isConnected, fetchPortfolioData]);
+  }, [isConnected, fetchPortfolioData, checkTelegramStatus]);
 
   const handleTradeSuccess = () => {
     fetchPortfolioData();
@@ -197,42 +213,38 @@ export default function PortfolioPage() {
             <div className="clay-glass" style={{ marginTop: 'var(--space-md)', padding: 'var(--space-md)', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-md)', border: '1px solid var(--glass-border)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-linen)' }}>
-                  Receive Real-Time Telegram Alerts
+                  {telegramConnected ? 'Telegram Alerts Active' : 'Receive Real-Time Telegram Alerts'}
                 </span>
                 <span style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--color-sage)' }}>
-                  Link your wallet to get immediate notifications on narrative shifts, executed trades, and trailing stops.
+                  {telegramConnected
+                    ? 'You will receive narrative shift alerts, trade notifications, and daily digests.'
+                    : 'Link your wallet to get immediate notifications on narrative shifts, executed trades, and trailing stops.'}
                 </span>
               </div>
               <button 
-                onClick={handleConnectTelegram}
+                onClick={telegramConnected ? undefined : handleConnectTelegram}
                 disabled={isTelegramLoading || !walletAddress}
                 style={{
-                  backgroundColor: 'rgba(212, 168, 83, 0.08)',
-                  color: 'var(--color-wire-gold)',
-                  border: '1px solid rgba(212, 168, 83, 0.25)',
+                  backgroundColor: telegramConnected ? 'rgba(74, 222, 128, 0.08)' : 'rgba(212, 168, 83, 0.08)',
+                  color: telegramConnected ? 'var(--color-pulse-green)' : 'var(--color-wire-gold)',
+                  border: telegramConnected ? '1px solid rgba(74, 222, 128, 0.25)' : '1px solid rgba(212, 168, 83, 0.25)',
                   borderRadius: 'var(--radius-md)',
                   padding: '8px 16px',
                   fontFamily: 'var(--font-body)',
                   fontSize: '0.78rem',
                   fontWeight: 600,
                   whiteSpace: 'nowrap',
-                  cursor: (!walletAddress || isTelegramLoading) ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  if (walletAddress && !isTelegramLoading) {
-                    e.currentTarget.style.backgroundColor = 'rgba(212, 168, 83, 0.16)';
-                    e.currentTarget.style.borderColor = 'rgba(212, 168, 83, 0.50)';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (walletAddress && !isTelegramLoading) {
-                    e.currentTarget.style.backgroundColor = 'rgba(212, 168, 83, 0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(212, 168, 83, 0.25)';
-                  }
+                  cursor: telegramConnected ? 'default' : (!walletAddress || isTelegramLoading) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                {isTelegramLoading ? 'GENERATING LINK...' : 'CONNECT TELEGRAM BOT'}
+                {telegramConnected && (
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--color-pulse-green)', display: 'inline-block', boxShadow: '0 0 6px var(--color-pulse-green)' }} />
+                )}
+                {isTelegramLoading ? 'GENERATING LINK...' : telegramConnected ? 'CONNECTED' : 'CONNECT TELEGRAM BOT'}
               </button>
             </div>
           </div>

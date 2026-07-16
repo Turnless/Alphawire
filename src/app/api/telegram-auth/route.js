@@ -1,8 +1,35 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { execute } from '../../../lib/db';
+import { execute, query } from '../../../lib/db';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * GET /api/telegram-auth?address=0x...
+ * Check if a wallet address has an active Telegram subscription.
+ */
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const address = searchParams.get('address');
+
+    if (!address || !address.startsWith('0x')) {
+      return NextResponse.json({ success: false, connected: false });
+    }
+
+    const rows = await query(
+      'SELECT chat_id FROM telegram_subscriptions WHERE wallet_address = ?',
+      [address.toLowerCase()]
+    );
+
+    return NextResponse.json({
+      success: true,
+      connected: rows && rows.length > 0,
+    });
+  } catch (error) {
+    return NextResponse.json({ success: true, connected: false });
+  }
+}
 
 /**
  * POST /api/telegram-auth
