@@ -1,10 +1,11 @@
 import OpenAI from 'openai';
 
 /**
- * OpenAI API Client for Cinder.
+ * OpenAI-compatible API Client for Cinder (Xiaomi MiMo).
  */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
 });
 
 /**
@@ -56,7 +57,7 @@ HEADLINE & CONTENT RULES:
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'mimo-v2.5',
       messages: [
         { role: 'system', content: 'You are an institutional financial journalist specializing in engaging, human-centric narrative reporting.' },
         { role: 'user', content: prompt }
@@ -110,7 +111,7 @@ HEADLINE & CONTENT RULES:
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'mimo-v2.5',
       messages: [
         { role: 'system', content: 'You are an institutional financial analyst and research editor specializing in engaging, human-centric narrative reporting.' },
         { role: 'user', content: prompt }
@@ -186,7 +187,7 @@ HEADLINE & CONTENT RULES:
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'mimo-v2.5',
       messages: [
         { role: 'system', content: 'You are an institutional financial wire editor specializing in engaging, human-centric narrative reporting.' },
         { role: 'user', content: prompt }
@@ -244,7 +245,7 @@ You must return a JSON object with:
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'mimo-v2.5',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: headlinesFormatted }
@@ -337,7 +338,7 @@ ${formattedItems}`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'mimo-v2.5',
       messages: [
         { role: 'system', content: 'You are an expert crypto market intelligence classifier.' },
         { role: 'user', content: prompt }
@@ -422,7 +423,7 @@ HEADLINE & CONTENT RULES:
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'mimo-v2.5',
       messages: [
         { role: 'system', content: 'You are an institutional financial editor specializing in engaging, human-centric reporting.' },
         { role: 'user', content: prompt }
@@ -465,7 +466,7 @@ ${formattedItems}`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'mimo-v2.5',
       messages: [
         { role: 'system', content: 'You are an expert financial wire editor specializing in human-centric rewriting.' },
         { role: 'user', content: prompt }

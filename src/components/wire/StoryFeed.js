@@ -122,7 +122,7 @@ export default function StoryFeed({ temperatureWidget }) {
       const limit = 12;
       const offset = (pageNum - 1) * limit;
 
-      const res = await fetch(`/api/stories?offset=${offset}&limit=${limit}`);
+      const res = await fetch(`/api/stories?offset=${offset}&limit=${limit}${pageNum === 1 ? '&refresh=true' : ''}`);
       const data = await res.json();
 
       if (data.success) {

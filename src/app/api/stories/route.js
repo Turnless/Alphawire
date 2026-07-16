@@ -4,13 +4,20 @@ import fs from 'fs';
 import path from 'path';
 import { query, execute } from '../../../lib/db';
 import { rateLimit } from '../../../lib/rate-limiter';
+import { getAINewsFeed } from '../../../lib/sosovalue';
+import { refineAllNews } from '../../../lib/openai';
 
 export const dynamic = 'force-dynamic';
 
 async function ensureDbData() {
   try {
-    const tables = await query("SELECT name FROM sqlite_master WHERE type='table' AND name='stories'");
-    if (tables.length === 0) {
+    const tables = await query("SELECT name FROM sqlite_master WHERE type='table'");
+    const tableNames = tables.map(t => t.name);
+    const requiredTables = ['stories', 'news_items', 'etf_flows', 'sector_data', 'narrative_history'];
+    const missingTables = requiredTables.filter(t => !tableNames.includes(t));
+    
+    if (missingTables.length > 0) {
+      console.log(`[DB] Missing tables detected: ${missingTables.join(', ')}. Running migration...`);
       const migrationPath = path.join(process.cwd(), 'migrations', '0001_init.sql');
       if (fs.existsSync(migrationPath)) {
         const sqlContent = fs.readFileSync(migrationPath, 'utf8');
@@ -27,6 +34,7 @@ async function ensureDbData() {
         for (const sql of statements) {
           await execute(sql.endsWith(';') ? sql : sql + ';');
         }
+        console.log('[DB] Migration completed successfully');
       }
     }
   } catch (err) {
@@ -55,6 +63,46 @@ export async function GET(request) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '10', 10)));
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10));
     const type = searchParams.get('type');
+    const refresh = searchParams.get('refresh') === 'true';
+
+    // Manual refresh: fetch fresh news from SoSoValue and cache it
+    if (refresh) {
+      try {
+        console.log('[STORIES API] Manual news refresh triggered...');
+        const freshNews = await getAINewsFeed(50);
+        if (freshNews && freshNews.length > 0) {
+          let refinedNews = freshNews;
+          try {
+            refinedNews = await refineAllNews(freshNews);
+          } catch (refineErr) {
+            console.error('[STORIES API] News refinement failed, using raw news:', refineErr.message);
+          }
+          for (const item of refinedNews) {
+            await execute(
+              `INSERT INTO news_items (id, title, summary, source, keywords, sentiment, fetched_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(id) DO UPDATE SET
+                 title = excluded.title,
+                 summary = excluded.summary,
+                 sentiment = excluded.sentiment,
+                 keywords = excluded.keywords`,
+              [
+                item.id,
+                item.title,
+                item.summary || null,
+                item.source || null,
+                JSON.stringify(item.keywords || []),
+                item.sentiment !== undefined ? item.sentiment : null,
+                item.publishedAt || new Date().toISOString()
+              ]
+            );
+          }
+          console.log(`[STORIES API] Refreshed and cached ${freshNews.length} news items`);
+        }
+      } catch (refreshErr) {
+        console.error('[STORIES API] Error during manual refresh:', refreshErr);
+      }
+    }
 
     // --- Fetch AI-generated stories from the stories table ---
     let storiesQuery = `
