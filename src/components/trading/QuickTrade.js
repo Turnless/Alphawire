@@ -183,6 +183,8 @@ export default function QuickTrade({ onTradeSuccess }) {
       const message = { payloadHash, nonce };
       const signature = await signer._signTypedData(domain, types, message);
 
+      setErrorMessage('Submitting signed order...');
+
       const response = await fetch('/api/trade', {
         method: 'POST',
         headers: {
@@ -196,7 +198,8 @@ export default function QuickTrade({ onTradeSuccess }) {
           price: finalPrice,
           stopLossPrice: slPrice,
           clientWallet: activeWalletAddress,
-          signature
+          signature,
+          nonce
         }),
       });
 

@@ -278,7 +278,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { pair, side, orderType, quantity, price, stopLossPrice, clientWallet, signature } = body;
+    const { pair, side, orderType, quantity, price, stopLossPrice, clientWallet, signature, nonce } = body;
 
     // Auth: accept internal API secret (for scheduler) OR wallet signature (for client QuickTrade)
     const apiSecret = request.headers.get('x-internal-api-secret');
@@ -318,8 +318,8 @@ export async function POST(request) {
         };
         const payloadJson = JSON.stringify({ type: 'newOrder', params: orderParams });
         const payloadHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(payloadJson));
-        const nonce = Date.now();
-        const recoveredAddress = ethers.utils.verifyTypedData(domain, types, { payloadHash, nonce }, signature);
+        const clientNonce = nonce || Date.now();
+        const recoveredAddress = ethers.utils.verifyTypedData(domain, types, { payloadHash, nonce: clientNonce }, signature);
         if (recoveredAddress.toLowerCase() !== clientWallet.toLowerCase()) {
           return NextResponse.json(
             { success: false, error: 'Unauthorized: wallet signature does not match clientWallet' },
