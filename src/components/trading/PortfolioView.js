@@ -1,9 +1,33 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ethers } from 'ethers';
+import { useWallet } from '../../context/WalletContext';
 
 export default function PortfolioView({ balance = '0.00', positions = [], onTradeSuccess }) {
   const [isLiquidating, setIsLiquidating] = useState(null);
+  const { walletAddress: globalWalletAddress, connectWallet: globalConnect } = useWallet();
+  const [localWalletAddress, setLocalWalletAddress] = useState('');
+  const activeWalletAddress = globalWalletAddress || localWalletAddress;
+
+  const handleConnectWallet = async () => {
+    if (globalConnect) {
+      await globalConnect();
+      return;
+    }
+    if (typeof window === 'undefined' || !window.ethereum) {
+      alert('MetaMask or another EVM wallet was not detected.');
+      return;
+    }
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const accounts = await provider.send('eth_requestAccounts', []);
+      setLocalWalletAddress(accounts[0]);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to connect wallet: ' + e.message);
+    }
+  };
 
   const parsedBalance = parseFloat(balance || 0);
   const positionsValue = positions.reduce((acc, pos) => acc + parseFloat(pos.value || 0), 0);
@@ -13,8 +37,45 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
   const handleClosePosition = async (pos) => {
     if (!confirm(`Are you sure you want to close/sell your entire position in ${pos.asset}?`)) return;
     
+    if (!activeWalletAddress) {
+      alert('Please connect your wallet first to close positions.');
+      return;
+    }
+
     setIsLiquidating(pos.asset);
     try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const network = await provider.getNetwork();
+
+      const orderParams = {
+        pair: `${pos.asset}-USDC`,
+        side: 'sell',
+        orderType: 'market',
+        quantity: String(pos.quantity),
+        price: String(pos.currentPrice),
+        stopPrice: '0.0'
+      };
+
+      const domain = {
+        name: 'spot',
+        version: '1',
+        chainId: network.chainId,
+        verifyingContract: '0x0000000000000000000000000000000000000000'
+      };
+
+      const types = {
+        ExchangeAction: [
+          { name: 'payloadHash', type: 'bytes32' },
+          { name: 'nonce', type: 'uint64' }
+        ]
+      };
+
+      const payloadJson = JSON.stringify({ type: 'newOrder', params: orderParams });
+      const payloadHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(payloadJson));
+      const nonce = Date.now();
+      const signature = await signer._signTypedData(domain, types, { payloadHash, nonce });
+
       const response = await fetch('/api/trade', {
         method: 'POST',
         headers: {
@@ -25,7 +86,10 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
           side: 'sell',
           orderType: 'market',
           quantity: pos.quantity,
-          price: pos.currentPrice
+          price: pos.currentPrice,
+          clientWallet: activeWalletAddress,
+          signature,
+          nonce
         }),
       });
 
@@ -38,7 +102,7 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
       }
     } catch (e) {
       console.error(e);
-      alert('Error executing sell order.');
+      alert('Error executing sell order: ' + e.message);
     } finally {
       setIsLiquidating(null);
     }
@@ -153,22 +217,40 @@ export default function PortfolioView({ balance = '0.00', positions = [], onTrad
                       {isProfit ? '+' : ''}{pnl.toFixed(2)}%
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <button
-                        onClick={() => handleClosePosition(pos)}
-                        disabled={isLiquidating === pos.asset}
-                        className="btn-destructive"
-                        style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid var(--color-shift-red)',
-                          cursor: 'pointer',
-                          opacity: isLiquidating === pos.asset ? 0.5 : 1
-                        }}
-                      >
-                        {isLiquidating === pos.asset ? 'Selling...' : 'Close'}
-                      </button>
+                      {activeWalletAddress ? (
+                        <button
+                          onClick={() => handleClosePosition(pos)}
+                          disabled={isLiquidating === pos.asset}
+                          className="btn-destructive"
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--color-shift-red)',
+                            cursor: 'pointer',
+                            opacity: isLiquidating === pos.asset ? 0.5 : 1
+                          }}
+                        >
+                          {isLiquidating === pos.asset ? 'Selling...' : 'Close'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleConnectWallet}
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--color-alert-amber)',
+                            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                            color: 'var(--color-alert-amber)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Connect
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
