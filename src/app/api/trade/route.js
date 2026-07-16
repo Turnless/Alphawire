@@ -27,7 +27,21 @@ export async function GET(request) {
         const ticker = await getTicker(paramTicker);
         return NextResponse.json({ success: true, price: ticker.price || '0.00' });
       } catch (err) {
-        // Fallback mock prices if SoDEX testnet returned 404/down
+        // SoDEX failed — try Binance directly as fallback
+        try {
+          const baseToken = paramTicker.split('-')[0].toUpperCase();
+          const binanceSymbol = `${baseToken}USDT`;
+          const binanceRes = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`);
+          if (binanceRes.ok) {
+            const binanceData = await binanceRes.json();
+            if (binanceData.price) {
+              return NextResponse.json({ success: true, price: parseFloat(binanceData.price).toString() });
+            }
+          }
+        } catch (binanceErr) {
+          console.warn(`[WARNING] Binance fallback also failed for ${paramTicker}:`, binanceErr.message);
+        }
+        // Final fallback: mock prices
         let mockPrice = '1.00';
         if (paramTicker.startsWith('BTC')) mockPrice = '64850.00';
         else if (paramTicker.startsWith('ETH')) mockPrice = '3210.00';
