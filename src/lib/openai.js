@@ -450,16 +450,23 @@ export async function refineNewsBatch(newsItems) {
 
 RULES:
 - For each item, rewrite the Headline and Summary.
+- Also analyze the overall sentiment of each news item.
 - The Headline MUST NEVER lead with a raw percentage or a "<Asset> News:" format.
 - The Headline MUST lead with a specific actor, an anomaly, or a comparison to a prior period.
 - BANNED words/phrases (do NOT use these in the headline or summary): surges, plunges, "here's what you need to know", explained, alert, breaking.
 - Maintain a factual, professional, and institutional tone but make it human-centric and engaging, avoiding dry robotic templates.
 - Keep the summary clear, concise, and under 150 words.
 
+Sentiment guidelines:
+- Positive (0.3 to 1.0): bullish news, adoption, growth, gains, partnerships, launches
+- Negative (-1.0 to -0.3): bearish news, hacks, bans, losses, regulatory action, collapses
+- Neutral (-0.3 to 0.3): factual reporting, neutral tone, balanced coverage
+
 Return a JSON object containing a "refined" array, where each object has:
 - "id": The original ID
 - "title": The refined headline
 - "summary": The refined summary
+- "sentiment": A float from -1.0 to 1.0
 
 News Items:
 ${formattedItems}`;
@@ -468,7 +475,7 @@ ${formattedItems}`;
     const response = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'mimo-v2.5',
       messages: [
-        { role: 'system', content: 'You are an expert financial wire editor specializing in human-centric rewriting.' },
+        { role: 'system', content: 'You are an expert financial wire editor and sentiment analyst specializing in human-centric rewriting and accurate sentiment scoring.' },
         { role: 'user', content: prompt }
       ],
       response_format: { type: 'json_object' }
@@ -504,7 +511,8 @@ export async function refineAllNews(newsItems) {
     return {
       ...item,
       title: refined?.title || item.title,
-      summary: refined?.summary || item.summary
+      summary: refined?.summary || item.summary,
+      sentiment: refined?.sentiment !== undefined ? refined.sentiment : item.sentiment
     };
   });
 }
